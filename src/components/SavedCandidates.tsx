@@ -64,7 +64,7 @@ export function SavedCandidates() {
                 githubUser: item.github_user_data,
                 // @ts-ignore
                 savedBy: item.profiles?.email,
-                status: item.status
+                status: item.status || 'new'
             }));
 
             setSavedProfiles(results);
@@ -132,6 +132,27 @@ export function SavedCandidates() {
         }
     };
 
+    const handleStatusChange = async (id: number, newStatus: string) => {
+        // Optimistic update
+        setSavedProfiles(prev => prev.map(p =>
+            p.id === id ? { ...p, status: newStatus as any } : p
+        ));
+
+        try {
+            const { error } = await supabase
+                .from('saved_candidates')
+                .update({ status: newStatus })
+                .eq('id', id);
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Error updating status:', error);
+            // Revert on error
+            fetchSavedCandidates();
+            alert('Failed to update status');
+        }
+    };
+
     const filteredProfiles = selectedStatus === 'all'
         ? savedProfiles
         : savedProfiles.filter(profile => (profile.status || 'new') === selectedStatus);
@@ -156,49 +177,53 @@ export function SavedCandidates() {
     }
 
     return (
-        <div className="space-y-8">
-            <div className="flex items-center gap-3 pb-6 border-b border-slate-800/50">
-                <div className="p-2 bg-pink-500/10 rounded-lg">
-                    <Heart className="w-6 h-6 text-pink-500 fill-pink-500" />
-                </div>
-                <div>
-                    <h2 className="text-2xl font-bold text-white">Saved Candidates</h2>
-                    <p className="text-slate-400">Your shortlisted developers</p>
-                </div>
-                <button
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="ml-auto flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                    Add Candidate
-                </button>
-            </div>
-
-            <Link
-                to="/"
-                className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-2 mb-4 transition-colors inline-block"
-            >
-                ← Back to Search
-            </Link>
-
-            {/* Status Filter */}
-            <div className="flex flex-wrap gap-2 mb-6">
-                {statuses.map(status => (
+        <div className="pb-12">
+            <div className={`w-full mx-auto transition-all duration-300 ${viewMode === 'grid' ? 'max-w-7xl' : 'w-full px-4'}`}>
+                <div className="flex items-center gap-3 pb-6 border-b border-slate-800/50 mb-8">
+                    <div className="p-2 bg-pink-500/10 rounded-lg">
+                        <Heart className="w-6 h-6 text-pink-500 fill-pink-500" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-white">Saved Candidates</h2>
+                        <p className="text-slate-400">Your shortlisted developers</p>
+                    </div>
                     <button
-                        key={status.id}
-                        onClick={() => setSelectedStatus(status.id)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedStatus === status.id
-                            ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
-                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
-                            }`}
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="ml-auto flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors"
                     >
-                        {status.label}
+                        <Plus className="w-4 h-4" />
+                        Add Candidate
                     </button>
-                ))}
+                </div>
+
+                <Link
+                    to="/"
+                    className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-2 mb-8 transition-colors inline-block"
+                >
+                    ← Back to Search
+                </Link>
             </div>
 
-            <div className="flex justify-end mb-4">
-                <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700 h-[42px]">
+            {/* Controls Row */}
+            <div className={`w-full mx-auto mb-8 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between transition-all duration-300 ${viewMode === 'grid' ? 'max-w-3xl' : 'w-full px-4'}`}>
+                {/* Status Filter */}
+                <div className="flex flex-wrap gap-2">
+                    {statuses.map(status => (
+                        <button
+                            key={status.id}
+                            onClick={() => setSelectedStatus(status.id)}
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedStatus === status.id
+                                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
+                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                                }`}
+                        >
+                            {status.label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* View Toggle */}
+                <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700 h-[42px] flex-shrink-0">
                     <button
                         onClick={() => setViewMode('grid')}
                         className={`p-2 rounded-lg transition-all ${viewMode === 'grid'
@@ -222,19 +247,26 @@ export function SavedCandidates() {
                 </div>
             </div>
 
-            {filteredProfiles.length === 0 ? (
-                <div className="text-center py-20 bg-slate-900/30 rounded-3xl border border-slate-800/50 border-dashed">
-                    <Heart className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                    <h3 className="text-xl font-medium text-slate-300 mb-2">No candidates found</h3>
-                    <p className="text-slate-500">
-                        {selectedStatus === 'all'
-                            ? "Star candidates from the search results to add them to your list."
-                            : `No candidates with status "${statuses.find(s => s.id === selectedStatus)?.label}".`}
-                    </p>
-                </div>
-            ) : (
-                <PackageList results={filteredProfiles} title="" viewMode={viewMode} />
-            )}
+            <div className={`w-full mx-auto transition-all duration-300 ${viewMode === 'grid' ? 'max-w-7xl' : 'w-full px-4'}`}>
+                {filteredProfiles.length === 0 ? (
+                    <div className="text-center py-20 bg-slate-900/30 rounded-3xl border border-slate-800/50 border-dashed">
+                        <Heart className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+                        <h3 className="text-xl font-medium text-slate-300 mb-2">No candidates found</h3>
+                        <p className="text-slate-500">
+                            {selectedStatus === 'all'
+                                ? "Star candidates from the search results to add them to your list."
+                                : `No candidates with status "${statuses.find(s => s.id === selectedStatus)?.label}".`}
+                        </p>
+                    </div>
+                ) : (
+                    <PackageList
+                        results={filteredProfiles}
+                        title=""
+                        viewMode={viewMode}
+                        onStatusChange={handleStatusChange}
+                    />
+                )}
+            </div>
 
             {/* Add Candidate Modal */}
             {isAddModalOpen && (

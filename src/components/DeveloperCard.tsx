@@ -12,9 +12,10 @@ interface DeveloperCardProps {
     initialIsSaved: boolean;
     onToggleSave: (packageName: string, isSaved: boolean) => void;
     teamId: string | null;
+    onStatusChange?: (id: number, newStatus: string) => void;
 }
 
-export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, teamId }: DeveloperCardProps) {
+export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, teamId, onStatusChange }: DeveloperCardProps) {
     const { package: pkg, score } = result;
     const {
         githubUsername,
@@ -28,6 +29,15 @@ export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, tea
         graphError,
         setGraphError
     } = useDeveloperProfile(result);
+
+    const statusColors: Record<string, string> = {
+        new: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+        contacted: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+        replied: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+        interviewing: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+        hired: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+        rejected: 'bg-red-500/10 text-red-400 border-red-500/20',
+    };
 
     const [isSaved, setIsSaved] = useState(initialIsSaved);
     const [isSaving, setIsSaving] = useState(false);
@@ -156,12 +166,27 @@ export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, tea
                         {pkg.publisher?.username || pkg.author?.name || 'Unknown Developer'}
                     </h3>
 
-                    {result.githubUser?.location && (
-                        <div className="flex items-center gap-1 text-xs text-slate-400 mb-2">
-                            <span className="w-3 h-3">📍</span>
-                            {result.githubUser.location}
-                        </div>
-                    )}
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+                        {result.status && onStatusChange && result.id ? (
+                            <select
+                                value={result.status}
+                                onChange={(e) => onStatusChange(result.id!, e.target.value)}
+                                className={`text-xs font-medium px-2 py-1 rounded-lg border outline-none cursor-pointer ${statusColors[result.status]}`}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <option value="new">New</option>
+                                <option value="contacted">Contacted</option>
+                                <option value="replied">Replied</option>
+                                <option value="interviewing">Interviewing</option>
+                                <option value="hired">Hired</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        ) : (
+                            <div className="text-xs text-slate-500">
+                                {result.package.date ? new Date(result.package.date).toLocaleDateString() : 'No date'}
+                            </div>
+                        )}
+                    </div>
 
                     <div className={`text-sm font-medium ${impactColor} flex items-center gap-2 mb-2`}>
                         {impactLevel}

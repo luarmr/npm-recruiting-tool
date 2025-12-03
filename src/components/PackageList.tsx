@@ -10,9 +10,10 @@ interface PackageListProps {
     results: NpmSearchResult[];
     title?: string;
     viewMode: 'grid' | 'list';
+    onStatusChange?: (id: number, newStatus: string) => void;
 }
 
-export function PackageList({ results, title, viewMode }: PackageListProps) {
+export function PackageList({ results, title, viewMode, onStatusChange }: PackageListProps) {
     const [savedPackageNames, setSavedPackageNames] = useState<Set<string>>(new Set());
     const [teamId, setTeamId] = useState<string | null>(null);
     const { visibleColumns, toggleColumn } = useColumnPreferences();
@@ -68,14 +69,16 @@ export function PackageList({ results, title, viewMode }: PackageListProps) {
 
     return (
         <div className="mb-12">
-            {title && (
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                        {title}
-                        <span className="text-sm font-normal text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
-                            {results.length}
-                        </span>
-                    </h2>
+            {(title || viewMode === 'list') && (
+                <div className={`flex items-center mb-6 ${title ? 'justify-between' : 'justify-end'}`}>
+                    {title && (
+                        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                            {title}
+                            <span className="text-sm font-normal text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
+                                {results.length}
+                            </span>
+                        </h2>
+                    )}
                     {viewMode === 'list' && (
                         <ColumnSelector visibleColumns={visibleColumns} onToggleColumn={toggleColumn} />
                     )}
@@ -95,6 +98,7 @@ export function PackageList({ results, title, viewMode }: PackageListProps) {
                                 initialIsSaved={savedPackageNames.has(result.package.name)}
                                 onToggleSave={handleToggleSave}
                                 teamId={teamId}
+                                onStatusChange={onStatusChange}
                             />
                         </div>
                     ))}
@@ -115,6 +119,7 @@ export function PackageList({ results, title, viewMode }: PackageListProps) {
                                 {visibleColumns.has('following') && <th className="py-4 px-4 font-medium text-center">Following</th>}
                                 {visibleColumns.has('location') && <th className="py-4 px-4 font-medium">Location</th>}
                                 {visibleColumns.has('contributions') && <th className="py-4 pr-4 font-medium w-64">Contributions (Last Year)</th>}
+                                {visibleColumns.has('status') && onStatusChange && <th className="py-4 px-4 font-medium">Status</th>}
                                 <th className="py-4 pr-4 font-medium w-16 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -128,6 +133,7 @@ export function PackageList({ results, title, viewMode }: PackageListProps) {
                                     onToggleSave={handleToggleSave}
                                     teamId={teamId}
                                     visibleColumns={visibleColumns}
+                                    onStatusChange={onStatusChange}
                                 />
                             ))}
                         </tbody>

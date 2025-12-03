@@ -9,7 +9,8 @@ export type ColumnId =
     | 'followers'
     | 'following'
     | 'location'
-    | 'contributions';
+    | 'contributions'
+    | 'status';
 
 export const AVAILABLE_COLUMNS: { id: ColumnId; label: string }[] = [
     { id: 'username', label: 'Username' },
@@ -21,6 +22,7 @@ export const AVAILABLE_COLUMNS: { id: ColumnId; label: string }[] = [
     { id: 'following', label: 'Following' },
     { id: 'location', label: 'Location' },
     { id: 'contributions', label: 'Contributions' },
+    { id: 'status', label: 'Status' },
 ];
 
 const DEFAULT_COLUMNS: ColumnId[] = [
@@ -31,12 +33,13 @@ const DEFAULT_COLUMNS: ColumnId[] = [
     'repos',
     'followers',
     'location',
-    'contributions'
+    'contributions',
+    'status'
 ];
 
 export function useColumnPreferences() {
     const [visibleColumns, setVisibleColumns] = useState<Set<ColumnId>>(() => {
-        const saved = localStorage.getItem('npm_search_columns');
+        const saved = localStorage.getItem('npm_search_columns_v2');
         if (saved) {
             try {
                 return new Set(JSON.parse(saved));
@@ -48,7 +51,7 @@ export function useColumnPreferences() {
     });
 
     useEffect(() => {
-        localStorage.setItem('npm_search_columns', JSON.stringify(Array.from(visibleColumns)));
+        localStorage.setItem('npm_search_columns_v2', JSON.stringify(Array.from(visibleColumns)));
     }, [visibleColumns]);
 
     const toggleColumn = (columnId: ColumnId) => {
