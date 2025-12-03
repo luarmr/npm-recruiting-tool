@@ -1,99 +1,74 @@
-# React + TypeScript + Vite
+# NPM Candidate Search 🔍
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A Talent Intelligence Platform that helps you find world-class engineers by analyzing their open-source contributions on NPM and GitHub.
 
-Currently, two official plugins are available:
+## 🚀 Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+-   **Smart Search**: Find developers based on the technologies they use (e.g., "react", "rust", "typescript").
+-   **Deep Insights**: View detailed profiles including:
+    -   NPM package statistics (quality, popularity, maintenance).
+    -   GitHub activity (repos, followers, contribution graphs).
+    -   Impact scores and "Top Talent" badges.
+-   **Flexible Views**: Toggle between a visual **Grid View** (cards) and a data-rich **Table View** (dense list).
+-   **Shortlisting**: Save promising candidates to your personal list.
+-   **Manual Entry**: Add candidates manually by their GitHub username if they don't appear in NPM search results.
+-   **Team Collaboration**:
+    -   Share saved candidates with your team.
+    -   Add notes and discussions to candidate profiles.
+    -   Track outreach status (New, Contacted, Interviewing, Hired).
 
-## 🗄️ Supabase Setup (Required for Auth & Saving)
+## 🛠️ Tech Stack
 
-1.  **Create a Project**: Go to [supabase.com](https://supabase.com) and create a new project.
-2.  **Database Schema**: Go to the SQL Editor in your Supabase dashboard and run the contents of `supabase_schema.sql` (found in this repo).
-3.  **Environment Variables**:
-    *   Get your `Project URL` and `anon public` key from Project Settings > API.
-    *   For local development: Create `.env.local` and add:
-        ```
-        VITE_SUPABASE_URL=your_project_url
-        VITE_SUPABASE_ANON_KEY=your_anon_key
-        ```
+-   **Frontend**: React, TypeScript, Vite, TailwindCSS
+-   **Backend**: Supabase (PostgreSQL, Auth, RLS)
+-   **Deployment**: Netlify
 
-## ship Deployment
+## 📦 Setup Guide
 
-The app is ready for Netlify.
+### 1. Prerequisites
+-   Node.js (v18+)
+-   A [Supabase](https://supabase.com) project
+
+### 2. Installation
+
+```bash
+git clone <your-repo-url>
+cd npm_candidate_search
+npm install
+```
+
+### 3. Database Setup
+
+1.  Go to your Supabase Dashboard -> SQL Editor.
+2.  Run the contents of `migrations/0_complete_schema.sql`.
+    *   This file contains the complete schema, including tables, RLS policies, and triggers.
+
+### 4. Environment Variables
+
+Create a `.env.local` file in the root directory:
+
+```env
+VITE_SUPABASE_URL=your_project_url
+VITE_SUPABASE_ANON_KEY=your_anon_key
+```
+
+### 5. Run Locally
+
+```bash
+npm run dev
+```
+
+## 🚢 Deployment (Netlify)
 
 1.  **Connect Repo**: Import this repository into Netlify.
 2.  **Environment Variables**: In Site Settings > Build & Deploy > Environment, add:
     *   `VITE_SUPABASE_URL`
     *   `VITE_SUPABASE_ANON_KEY`
-3.  **Deploy**: Trigger a deployment.
+3.  **Build Settings**:
+    *   Build command: `npm run build`
+    *   Publish directory: `dist`
+4.  **Redirects**: The `netlify.toml` file is already configured to handle SPA routing (`/* /index.html 200`).
 
 ## 📝 License
 
 MIT
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
