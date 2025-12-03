@@ -1,19 +1,23 @@
 import { useState } from 'react';
 import { getPackagesByTopic } from '../lib/npm-api';
-import type { NpmSearchResult } from '../types';
+import { searchPyPI } from '../lib/pypi-api';
+import type { CandidateResult } from '../types';
 import { useViewMode } from './useViewMode';
+
+export type SearchSource = 'npm' | 'pypi';
 
 export function useNpmSearch() {
     const [query, setQuery] = useState('');
-    const [results, setResults] = useState<NpmSearchResult[]>([]);
+    const [results, setResults] = useState<CandidateResult[]>([]);
     const [loading, setIsLoading] = useState(false);
     const [offset, setOffset] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const { viewMode, setViewMode } = useViewMode();
     const [hasMore, setHasMore] = useState(true);
+    const [source, setSource] = useState<SearchSource>('npm');
 
     // Heuristic to filter out organizations
-    const isOrganization = (result: NpmSearchResult) => {
+    const isOrganization = (result: CandidateResult) => {
         const { package: pkg } = result;
         const username = pkg.publisher?.username?.toLowerCase();
         if (!username) return false;
@@ -32,7 +36,7 @@ export function useNpmSearch() {
         return false;
     };
 
-    const search = async (searchQuery: string, isLoadMore = false) => {
+    const search = async (searchQuery: string, isLoadMore = false, searchSource: SearchSource = source) => {
         if (!searchQuery.trim()) return;
 
         if (!isLoadMore) {
@@ -40,6 +44,7 @@ export function useNpmSearch() {
             setOffset(0);
             setResults([]);
             setHasMore(true);
+            setSource(searchSource);
         }
 
         setIsLoading(true);
@@ -49,10 +54,21 @@ export function useNpmSearch() {
             const fetchSize = 50;
             const currentOffset = isLoadMore ? offset + fetchSize : 0;
 
-            const response = await getPackagesByTopic(searchQuery, 'optimal', fetchSize, currentOffset);
+            let newResults: CandidateResult[] = [];
 
-            if (response.objects.length < fetchSize) {
-                setHasMore(false);
+            if (searchSource === 'npm') {
+                const results = await getPackagesByTopic(searchQuery, 'optimal', fetchSize, currentOffset);
+                if (results.length < fetchSize) {
+                    setHasMore(false);
+                }
+                newResults = results.map(obj => ({ ...obj, source: 'npm' as const }));
+            } else {
+                // PyPI Search
+                const results = await searchPyPI(searchQuery, currentOffset);
+                if (results.length < fetchSize) {
+                    setHasMore(false);
+                }
+                newResults = results;
             }
 
             const seen = new Set<string>();
@@ -62,7 +78,7 @@ export function useNpmSearch() {
                 });
             }
 
-            const newResults = response.objects.filter(item => {
+            const filteredResults = newResults.filter(item => {
                 const username = item.package.publisher?.username;
                 if (!username || seen.has(username)) return false;
                 if (isOrganization(item)) return false;
@@ -70,8 +86,8 @@ export function useNpmSearch() {
                 return true;
             });
 
-            // Enrich with GitHub data
-            const enrichedResults = await Promise.all(newResults.map(async (result, index) => {
+            // Enrich with GitHub data (only for NPM, PyPI already does it)
+            const enrichedResults = searchSource === 'npm' ? await Promise.all(filteredResults.map(async (result, index) => {
                 if (index >= 15) return result;
 
                 const username = result.package.publisher?.username;
@@ -92,6 +108,8 @@ export function useNpmSearch() {
                             return {
                                 ...result,
                                 githubUser: {
+                                    name: githubUser.name || undefined,
+                                    avatar_url: githubUser.avatar_url || undefined,
                                     location: githubUser.location || undefined,
                                     bio: githubUser.bio || undefined,
                                     company: githubUser.company || undefined,
@@ -107,7 +125,7 @@ export function useNpmSearch() {
                     }
                 }
                 return result;
-            }));
+            })) : filteredResults;
 
             if (isLoadMore) {
                 setResults(prev => [...prev, ...enrichedResults]);
@@ -139,6 +157,8 @@ export function useNpmSearch() {
         loadMore,
         hasMore,
         viewMode,
-        setViewMode
+        setViewMode,
+        source,
+        setSource
     };
 }

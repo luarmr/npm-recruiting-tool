@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import type { NpmSearchResult } from '../types';
+import type { CandidateResult } from '../types';
 
-export function useDeveloperProfile(result: NpmSearchResult) {
+export function useDeveloperProfile(result: CandidateResult) {
     const { package: pkg, score } = result;
 
     // Extract GitHub username

@@ -1,4 +1,4 @@
-import type { NpmSearchResponse, SortOption } from '../types';
+import type { NpmSearchResponse, CandidateResult, SortOption } from '../types';
 
 const REGISTRY_URL = 'https://registry.npmjs.org/-/v1/search';
 
@@ -9,7 +9,7 @@ export async function searchPackages(
     quality?: number,
     popularity?: number,
     maintenance?: number
-): Promise<NpmSearchResponse> {
+): Promise<CandidateResult[]> {
     const params = new URLSearchParams();
     params.append('text', text);
     params.append('size', size.toString());
@@ -19,23 +19,40 @@ export async function searchPackages(
     if (popularity !== undefined) params.append('popularity', popularity.toString());
     if (maintenance !== undefined) params.append('maintenance', maintenance.toString());
 
-    const response = await fetch(`${REGISTRY_URL}?${params.toString()}`);
+    const response = await fetch(`${REGISTRY_URL}?${params.toString()} `);
 
     if (!response.ok) {
-        throw new Error(`NPM Registry API error: ${response.statusText}`);
+        throw new Error(`NPM Registry API error: ${response.statusText} `);
     }
 
-    return response.json();
+    const data: NpmSearchResponse = await response.json();
+    const objects: CandidateResult[] = data.objects.map((obj: any) => ({
+        package: {
+            name: obj.package.name,
+            version: obj.package.version,
+            description: obj.package.description,
+            keywords: obj.package.keywords,
+            date: obj.package.date,
+            links: obj.package.links,
+            publisher: obj.package.publisher,
+            maintainers: obj.package.maintainers,
+            author: obj.package.author
+        },
+        score: obj.score,
+        searchScore: obj.searchScore,
+        source: 'npm'
+    }));
+    return objects;
 }
 
-export async function getPackagesByTopic(topic: string, sort: SortOption = 'optimal', size: number = 20, from: number = 0): Promise<NpmSearchResponse> {
+export async function getPackagesByTopic(topic: string, sort: SortOption = 'optimal', size: number = 20, from: number = 0): Promise<CandidateResult[]> {
     // Handle multi-term search (e.g., "react, redux, typescript")
     const terms = topic.split(',').map(t => t.trim()).filter(Boolean);
 
     // Construct query: prioritize keywords, but allow text match
     // If multiple terms, we want packages that match ALL or MOST of them.
     // NPM registry 'text' parameter handles space-separated terms as an implicit AND/OR mix depending on weight.
-    // Using `keywords:term` is stricter.
+    // Using `keywords: term` is stricter.
 
     let query = '';
     if (terms.length > 1 || terms[0].includes(' ')) {
@@ -43,7 +60,7 @@ export async function getPackagesByTopic(topic: string, sort: SortOption = 'opti
         query = terms.join(' ');
     } else {
         // Single word term - prefer keyword search for precision
-        query = `keywords:${topic}`;
+        query = `keywords:${topic} `;
     }
 
     let quality = 1.0;

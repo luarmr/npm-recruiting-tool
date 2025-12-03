@@ -1,22 +1,21 @@
 import { useState, useEffect } from 'react';
-import type { NpmSearchResult } from '../types';
+import type { CandidateResult } from '../types';
 import { DeveloperCard } from './DeveloperCard';
 import { DeveloperRow } from './DeveloperRow';
 import { supabase } from '../lib/supabase';
-import { useColumnPreferences } from '../hooks/useColumnPreferences';
-import { ColumnSelector } from './ColumnSelector';
+import type { ColumnId } from '../hooks/useColumnPreferences';
 
 interface PackageListProps {
-    results: NpmSearchResult[];
+    results: CandidateResult[];
     title?: string;
     viewMode: 'grid' | 'list';
     onStatusChange?: (id: number, newStatus: string) => void;
+    visibleColumns?: Set<ColumnId>;
 }
 
-export function PackageList({ results, title, viewMode, onStatusChange }: PackageListProps) {
+export function PackageList({ results, title, viewMode, onStatusChange, visibleColumns = new Set() }: PackageListProps) {
     const [savedPackageNames, setSavedPackageNames] = useState<Set<string>>(new Set());
     const [teamId, setTeamId] = useState<string | null>(null);
-    const { visibleColumns, toggleColumn } = useColumnPreferences();
 
     useEffect(() => {
         fetchUserData();
@@ -69,19 +68,14 @@ export function PackageList({ results, title, viewMode, onStatusChange }: Packag
 
     return (
         <div className="mb-12">
-            {(title || viewMode === 'list') && (
-                <div className={`flex items-center mb-6 ${title ? 'justify-between' : 'justify-end'}`}>
-                    {title && (
-                        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                            {title}
-                            <span className="text-sm font-normal text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
-                                {results.length}
-                            </span>
-                        </h2>
-                    )}
-                    {viewMode === 'list' && (
-                        <ColumnSelector visibleColumns={visibleColumns} onToggleColumn={toggleColumn} />
-                    )}
+            {title && (
+                <div className="flex items-center mb-6 justify-between">
+                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                        {title}
+                        <span className="text-sm font-normal text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
+                            {results.length}
+                        </span>
+                    </h2>
                 </div>
             )}
 
@@ -108,8 +102,7 @@ export function PackageList({ results, title, viewMode, onStatusChange }: Packag
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-slate-700 bg-slate-800/50 text-xs uppercase tracking-wider text-slate-400">
-                                <th className="py-4 pl-4 font-medium w-16">Avatar</th>
-                                <th className="py-4 px-4 font-medium">Name</th>
+                                <th className="py-4 pl-4 font-medium">Candidate</th>
                                 {visibleColumns.has('username') && <th className="py-4 px-4 font-medium">Username</th>}
                                 {visibleColumns.has('bio') && <th className="py-4 px-4 font-medium">Bio</th>}
                                 {visibleColumns.has('tech_stack') && <th className="py-4 px-4 font-medium">Tech Stack</th>}

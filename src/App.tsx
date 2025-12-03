@@ -7,6 +7,8 @@ import { SavedCandidates } from './components/SavedCandidates';
 import { TeamSettings } from './components/TeamSettings';
 import { CandidateDetail } from './components/CandidateDetail';
 import { useNpmSearch } from './hooks/useNpmSearch';
+import { useColumnPreferences } from './hooks/useColumnPreferences';
+import { ColumnSelector } from './components/ColumnSelector';
 import { useEffect } from 'react';
 
 function SearchPage() {
@@ -21,7 +23,10 @@ function SearchPage() {
     hasMore,
     viewMode,
     setViewMode,
+    source,
+    setSource
   } = useNpmSearch();
+  const { visibleColumns, toggleColumn } = useColumnPreferences();
 
   useEffect(() => {
     // Initial search if empty
@@ -49,31 +54,40 @@ function SearchPage() {
         </p>
       </header>
 
-      <div className={`w-full mx-auto mb-12 flex gap-4 transition-all duration-300 ${viewMode === 'grid' ? 'max-w-3xl' : 'w-full px-4'}`}>
+      <div className={`w-full mx-auto mb-12 flex flex-col sm:flex-row gap-4 transition-all duration-300 ${viewMode === 'grid' ? 'max-w-3xl' : 'w-full px-4'}`}>
         <div className="flex-grow">
-          <SearchInput onSearch={handleSearch} />
+          <SearchInput
+            onSearch={handleSearch}
+            source={source}
+            onSourceChange={setSource}
+          />
         </div>
-        <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700 h-[52px]">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid'
-              ? 'bg-indigo-500 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white hover:bg-slate-700'
-              }`}
-            title="Grid View"
-          >
-            <LayoutGrid className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`p-2.5 rounded-lg transition-all ${viewMode === 'list'
-              ? 'bg-indigo-500 text-white shadow-lg'
-              : 'text-slate-400 hover:text-white hover:bg-slate-700'
-              }`}
-            title="List View"
-          >
-            <List className="w-5 h-5" />
-          </button>
+        <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center">
+          <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700 h-[52px] gap-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid'
+                ? 'bg-indigo-500 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                }`}
+              title="Grid View"
+            >
+              <LayoutGrid className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2.5 rounded-lg transition-all ${viewMode === 'list'
+                ? 'bg-indigo-500 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                }`}
+              title="List View"
+            >
+              <List className="w-5 h-5" />
+            </button>
+          </div>
+          {viewMode === 'list' && (
+            <ColumnSelector visibleColumns={visibleColumns} onToggleColumn={toggleColumn} />
+          )}
         </div>
       </div>
 
@@ -88,6 +102,7 @@ function SearchPage() {
           results={results}
           title={results.length > 0 ? "Search Results" : undefined}
           viewMode={viewMode}
+          visibleColumns={visibleColumns}
         />
       </div>
 

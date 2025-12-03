@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { NpmSearchResult } from '../types';
+import type { CandidateResult } from '../types';
 import { ExternalLink, Github, Trophy, TrendingUp, ShieldCheck, Code2, Heart, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDeveloperProfile } from '../hooks/useDeveloperProfile';
@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
 interface DeveloperCardProps {
-    result: NpmSearchResult;
+    result: CandidateResult;
     index: number;
     initialIsSaved: boolean;
     onToggleSave: (packageName: string, isSaved: boolean) => void;
@@ -158,13 +158,38 @@ export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, tea
                                 <ExternalLink className="w-4 h-4" />
                             </a>
                         )}
+                        {result.package.links.npm && (
+                            <a
+                                href={result.package.links.npm}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors border border-slate-700/50 z-10"
+                                title={result.source === 'pypi' ? "View on PyPI" : "View on NPM"}
+                            >
+                                <ExternalLink className="w-4 h-4" />
+                            </a>
+                        )}
                     </div>
                 </div>
 
                 <div className="mb-6">
-                    <h3 className="text-xl font-bold text-white mb-1">
-                        {pkg.publisher?.username || pkg.author?.name || 'Unknown Developer'}
-                    </h3>
+                    <div className="flex items-center gap-2 mb-2">
+                        {result.source === 'pypi' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
+                                <img src="https://pypi.org/static/images/logo-small.2a411bc6.svg" className="w-3 h-3" alt="PyPI" />
+                                PyPI
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">
+                                <svg viewBox="0 0 780 250" className="w-3 h-3 fill-current"><path d="M240,250h100v-50h100V0H240V250z M340,50h50v100h-50V50z M480,0v200h100V50h50v150h50V50h50v150h50V0H480z M0,200h100V50h50v150h50V0H0V200z"></path></svg>
+                                NPM
+                            </span>
+                        )}
+                        <h3 className="text-xl font-bold text-white truncate flex-1">
+                            {result.package.publisher?.username || 'Unknown'}
+                        </h3>
+                    </div>
 
                     <div className="flex items-center justify-between pt-4 border-t border-slate-800">
                         {result.status && onStatusChange && result.id ? (

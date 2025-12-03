@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { ArrowLeft, ExternalLink, Github, MapPin, MessageSquare, Send, Copy, Check, Users, TrendingUp } from 'lucide-react';
-// import type { NpmSearchResult } from '../types';
+
 
 interface Note {
     id: string;

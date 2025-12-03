@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MapPin, Trophy, Heart } from 'lucide-react';
+import { MapPin, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import type { NpmSearchResult } from '../types';
+import type { CandidateResult } from '../types';
 import { useDeveloperProfile } from '../hooks/useDeveloperProfile';
 import type { ColumnId } from '../hooks/useColumnPreferences';
 
 interface DeveloperRowProps {
-    result: NpmSearchResult;
+    result: CandidateResult;
     index: number;
     initialIsSaved?: boolean;
     onToggleSave?: (packageName: string, isSaved: boolean) => void;
@@ -84,10 +84,8 @@ export function DeveloperRow({ result, index, initialIsSaved = false, onToggleSa
     };
 
     const {
-        avatarUrl,
         githubProfileUrl,
         githubUsername,
-        setAvatarError,
         hasVerifiedGithub,
         graphError,
         setGraphError
@@ -111,33 +109,45 @@ export function DeveloperRow({ result, index, initialIsSaved = false, onToggleSa
             transition={{ duration: 0.3, delay: index * 0.05 }}
             className="group border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors align-middle"
         >
-            {/* Avatar */}
             <td className="py-4 pl-4">
-                <div
-                    className={`w-10 h-10 rounded-full bg-slate-800 overflow-hidden border border-slate-700 ${result.id ? 'cursor-pointer hover:border-indigo-500 transition-colors' : ''}`}
-                    onClick={handleRowClick}
-                >
-                    <img
-                        src={avatarUrl}
-                        alt={pkg.publisher?.username}
-                        className="w-full h-full object-cover"
-                        onError={() => setAvatarError(true)}
-                    />
-                </div>
-            </td>
-
-            {/* Name */}
-            <td className="py-4 px-4">
-                <div
-                    className={`flex items-center gap-2 ${result.id ? 'cursor-pointer group/name' : ''}`}
-                    onClick={handleRowClick}
-                >
-                    <span className={`font-medium text-slate-200 whitespace-nowrap ${result.id ? 'group-hover/name:text-indigo-400 transition-colors' : ''}`}>
-                        {pkg.author?.name || pkg.publisher?.username || 'Unknown'}
-                    </span>
-                    {result.searchScore > 100 && (
-                        <Trophy className="w-3 h-3 text-emerald-400" />
-                    )}
+                <div className="flex items-center gap-3 min-w-0">
+                    <div
+                        onClick={handleRowClick}
+                        className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-indigo-400 font-bold text-lg flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-indigo-500 transition-all"
+                    >
+                        {result.githubUser?.avatar_url ? (
+                            <img src={result.githubUser.avatar_url} alt={result.package.publisher?.username} className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                            (result.package.publisher?.username || '?').charAt(0).toUpperCase()
+                        )}
+                    </div>
+                    <div className="min-w-0">
+                        <div
+                            onClick={handleRowClick}
+                            className="font-medium text-white truncate cursor-pointer hover:text-indigo-400 transition-colors"
+                        >
+                            {result.package.publisher?.username || 'Unknown'}
+                        </div>
+                        <div className="text-xs text-slate-500 flex items-center gap-1">
+                            {result.source === 'pypi' ? (
+                                <span className="text-yellow-500 flex items-center gap-1">
+                                    <img src="https://pypi.org/static/images/logo-small.2a411bc6.svg" className="w-3 h-3" alt="PyPI" />
+                                    PyPI
+                                </span>
+                            ) : (
+                                <span className="text-red-500 flex items-center gap-1">
+                                    <svg viewBox="0 0 780 250" className="w-3 h-3 fill-current"><path d="M240,250h100v-50h100V0H240V250z M340,50h50v100h-50V50z M480,0v200h100V50h50v150h50V50h50v150h50V0H480z M0,200h100V50h50v150h50V0H0V200z"></path></svg>
+                                    NPM
+                                </span>
+                            )}
+                            {result.githubUser?.location && (
+                                <>
+                                    <span>•</span>
+                                    <span className="truncate">{result.githubUser.location}</span>
+                                </>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </td>
 

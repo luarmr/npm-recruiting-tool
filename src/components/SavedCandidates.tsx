@@ -1,22 +1,23 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { PackageList } from './PackageList';
-import { type NpmSearchResult } from '../types';
+import type { CandidateResult } from '../types';
 import { Loader2, Heart, Plus, X, Search, LayoutGrid, List } from 'lucide-react';
 import { getGithubUser } from '../lib/github-api';
 import { useViewMode } from '../hooks/useViewMode';
+import { useColumnPreferences } from '../hooks/useColumnPreferences';
+import { ColumnSelector } from './ColumnSelector';
 import { Link } from 'react-router-dom';
-// import { Layout } from './Layout';
-
 
 export function SavedCandidates() {
-    const [savedProfiles, setSavedProfiles] = useState<NpmSearchResult[]>([]);
+    const [savedProfiles, setSavedProfiles] = useState<CandidateResult[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedStatus, setSelectedStatus] = useState<string>('all');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newCandidateUsername, setNewCandidateUsername] = useState('');
     const [addLoading, setAddLoading] = useState(false);
     const { viewMode, setViewMode } = useViewMode();
+    const { visibleColumns, toggleColumn } = useColumnPreferences();
 
     useEffect(() => {
         fetchSavedCandidates();
@@ -34,7 +35,7 @@ export function SavedCandidates() {
             if (error) throw error;
 
             // Transform DB data back to NpmSearchResult format
-            const results: NpmSearchResult[] = data.map(item => ({
+            const results: CandidateResult[] = data.map(item => ({
                 id: item.id, // Populate ID
                 package: {
                     name: item.package_name,
@@ -64,7 +65,8 @@ export function SavedCandidates() {
                 githubUser: item.github_user_data,
                 // @ts-ignore
                 savedBy: item.profiles?.email,
-                status: item.status || 'new'
+                status: item.status || 'new',
+                source: item.source || 'npm'
             }));
 
             setSavedProfiles(results);
@@ -99,7 +101,7 @@ export function SavedCandidates() {
                 .from('saved_candidates')
                 .insert({
                     user_id: user.id,
-                    package_name: `github:${githubUser.login}`, // distinct from npm packages
+                    package_name: `github:${githubUser.login} `, // distinct from npm packages
                     package_version: '0.0.0',
                     description: githubUser.bio || 'Manual GitHub Entry',
                     keywords: ['github-profile'],
@@ -205,7 +207,7 @@ export function SavedCandidates() {
             </div>
 
             {/* Controls Row */}
-            <div className={`w-full mx-auto mb-8 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between transition-all duration-300 ${viewMode === 'grid' ? 'max-w-3xl' : 'w-full px-4'}`}>
+            <div className={`w-full mx-auto mb-8 flex flex-col sm:flex-row sm:flex-wrap gap-4 items-start sm:items-center justify-between transition-all duration-300 ${viewMode === 'grid' ? 'max-w-3xl' : 'w-full px-4'}`}>
                 {/* Status Filter */}
                 <div className="flex flex-wrap gap-2">
                     {statuses.map(status => (
@@ -222,28 +224,34 @@ export function SavedCandidates() {
                     ))}
                 </div>
 
-                {/* View Toggle */}
-                <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700 h-[42px] flex-shrink-0">
-                    <button
-                        onClick={() => setViewMode('grid')}
-                        className={`p-2 rounded-lg transition-all ${viewMode === 'grid'
-                            ? 'bg-indigo-500 text-white shadow-lg'
-                            : 'text-slate-400 hover:text-white hover:bg-slate-700'
-                            }`}
-                        title="Grid View"
-                    >
-                        <LayoutGrid className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={() => setViewMode('list')}
-                        className={`p-2 rounded-lg transition-all ${viewMode === 'list'
-                            ? 'bg-indigo-500 text-white shadow-lg'
-                            : 'text-slate-400 hover:text-white hover:bg-slate-700'
-                            }`}
-                        title="List View"
-                    >
-                        <List className="w-4 h-4" />
-                    </button>
+                {/* View Controls Group */}
+                <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center">
+                    <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700 h-[42px] flex-shrink-0 gap-1">
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`p-2 rounded-lg transition-all ${viewMode === 'grid'
+                                ? 'bg-indigo-500 text-white shadow-lg'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                                }`}
+                            title="Grid View"
+                        >
+                            <LayoutGrid className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`p-2 rounded-lg transition-all ${viewMode === 'list'
+                                ? 'bg-indigo-500 text-white shadow-lg'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                                }`}
+                            title="List View"
+                        >
+                            <List className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    {viewMode === 'list' && (
+                        <ColumnSelector visibleColumns={visibleColumns} onToggleColumn={toggleColumn} />
+                    )}
                 </div>
             </div>
 
@@ -264,6 +272,7 @@ export function SavedCandidates() {
                         title=""
                         viewMode={viewMode}
                         onStatusChange={handleStatusChange}
+                        visibleColumns={visibleColumns}
                     />
                 )}
             </div>

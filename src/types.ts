@@ -34,11 +34,13 @@ export interface NpmScore {
     };
 }
 
-export interface NpmSearchResult {
+export interface CandidateResult {
     package: NpmPackage;
     score: NpmScore;
     searchScore: number;
     githubUser?: {
+        name?: string;
+        avatar_url?: string;
         location?: string;
         bio?: string;
         company?: string;
@@ -50,10 +52,11 @@ export interface NpmSearchResult {
     savedBy?: string; // Email of the user who saved this candidate
     status?: 'new' | 'contacted' | 'replied' | 'interviewing' | 'hired' | 'rejected';
     id?: number; // Database ID for saved candidates
+    source: 'npm' | 'pypi';
 }
 
 export interface NpmSearchResponse {
-    objects: NpmSearchResult[];
+    objects: CandidateResult[];
     total: number;
     time: string;
 }
