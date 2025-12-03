@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, ExternalLink, Github, MapPin, MessageSquare, Send, Copy, Check, Users } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Github, MapPin, MessageSquare, Send, Copy, Check, Users, TrendingUp } from 'lucide-react';
 // import type { NpmSearchResult } from '../types';
 
 interface Note {
@@ -48,6 +48,7 @@ export function CandidateDetail() {
     const [loading, setLoading] = useState(true);
     const [noteLoading, setNoteLoading] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [graphError, setGraphError] = useState(false);
 
     useEffect(() => {
         if (id) fetchCandidate();
@@ -241,6 +242,24 @@ export function CandidateDetail() {
                             </div>
                         </div>
                     </div>
+
+                    {/* GitHub Contribution Graph */}
+                    {!graphError && (candidate.github_user_data?.login || candidate.publisher_username) && (
+                        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
+                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                <TrendingUp className="w-5 h-5 text-indigo-400" />
+                                Contribution Activity
+                            </h3>
+                            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/30 overflow-hidden">
+                                <img
+                                    src={`https://ghchart.rshah.org/4f46e5/${candidate.github_user_data?.login || candidate.publisher_username}`}
+                                    alt="Contribution Graph"
+                                    className="w-full h-auto opacity-80 hover:opacity-100 transition-opacity"
+                                    onError={() => setGraphError(true)}
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Column: Status & Notes */}
