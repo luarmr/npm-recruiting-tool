@@ -140,12 +140,7 @@ export function DeveloperRow({ result, index, initialIsSaved = false, onToggleSa
                                     NPM
                                 </span>
                             )}
-                            {result.githubUser?.location && (
-                                <>
-                                    <span>•</span>
-                                    <span className="truncate">{result.githubUser.location}</span>
-                                </>
-                            )}
+
                         </div>
                     </div>
                 </div>
