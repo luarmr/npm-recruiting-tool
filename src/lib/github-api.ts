@@ -55,7 +55,16 @@ export async function getGithubUser(username: string): Promise<GithubUser | null
     }
 
     try {
-        const response = await fetch(`https://api.github.com/users/${username}`);
+        const { data: { session } } = await import('./supabase').then(m => m.supabase.auth.getSession());
+        const token = session?.provider_token;
+
+        const headers: HeadersInit = {};
+
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`https://api.github.com/users/${username}`, { headers });
         if (!response.ok) {
             if (response.status === 404) {
                 setCache(username, null);
