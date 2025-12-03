@@ -293,10 +293,6 @@ export function TeamSettings() {
 
                             <div className="space-y-4">
                                 <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Invite New Member</h3>
-
-
-                                // ... (render)
-                                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Invite New Member</h3>
                                 <form onSubmit={handleInvite} className="space-y-4">
                                     <div className="space-y-2">
                                         <label className="text-sm text-slate-400">Search by GitHub Username</label>
