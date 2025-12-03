@@ -92,7 +92,7 @@ export function PackageList({ results, title, viewMode }: PackageListProps) {
                     ))}
                 </div>
             ) : (
-                <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/50">
+                <div className="min-w-full w-fit rounded-xl border border-slate-800 bg-slate-900/50">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-slate-700 bg-slate-800/50 text-xs uppercase tracking-wider text-slate-400">
@@ -107,6 +107,7 @@ export function PackageList({ results, title, viewMode }: PackageListProps) {
                                 <th className="py-4 px-4 font-medium text-center">Following</th>
                                 <th className="py-4 px-4 font-medium">Location</th>
                                 <th className="py-4 pr-4 font-medium w-64">Contributions (Last Year)</th>
+                                <th className="py-4 pr-4 font-medium w-16 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/50">
@@ -115,6 +116,9 @@ export function PackageList({ results, title, viewMode }: PackageListProps) {
                                     key={`${result.package.name}-${index}`}
                                     result={result}
                                     index={index}
+                                    initialIsSaved={savedPackageNames.has(result.package.name)}
+                                    onToggleSave={handleToggleSave}
+                                    teamId={teamId}
                                 />
                             ))}
                         </tbody>

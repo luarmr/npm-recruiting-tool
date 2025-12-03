@@ -82,7 +82,7 @@ export function Layout({ children }: LayoutProps) {
     };
 
     return (
-        <div className="min-h-screen bg-[#0B1120] text-slate-100 font-sans selection:bg-indigo-500/30 flex flex-col items-center">
+        <div className="h-screen overflow-hidden bg-[#0B1120] text-slate-100 font-sans selection:bg-indigo-500/30 flex flex-col items-center">
             <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
 
             {/* Subtle Background Pattern */}
@@ -93,7 +93,7 @@ export function Layout({ children }: LayoutProps) {
             </div>
 
             {/* Top Navigation Bar */}
-            <div className="relative z-20 w-full border-b border-slate-800/50 bg-slate-900/50 backdrop-blur-sm">
+            <div className="relative z-20 w-full border-b border-slate-800/50 bg-slate-900/50 backdrop-blur-sm flex-shrink-0">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-7xl">
                     <Link
                         to="/"
@@ -151,7 +151,7 @@ export function Layout({ children }: LayoutProps) {
             </div>
 
             {/* Content */}
-            <div className="relative z-10 container mx-auto px-4 py-12 max-w-7xl flex flex-col items-center w-full flex-grow">
+            <div className="relative z-10 w-full flex flex-col flex-grow overflow-auto">
                 <main className="w-full flex-grow">
                     {children}
                 </main>

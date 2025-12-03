@@ -37,20 +37,19 @@ function SearchPage() {
 
   return (
     <>
-      <header className="mb-16 flex flex-col items-center text-center">
+      <header className="mb-12 pt-12 text-center flex flex-col items-center">
         <div className="inline-flex items-center justify-center px-3 py-1 mb-6 rounded-full bg-indigo-500/10 border border-indigo-500/20 backdrop-blur-sm">
           <span className="text-xs font-semibold tracking-wide text-indigo-400 uppercase">Talent Intelligence Platform</span>
         </div>
-        <h1 className="text-5xl md:text-6xl font-bold text-white tracking-tight mb-6">
-          Find World-Class <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">Engineers</span>
+        <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">
+          NPM Candidate Search
         </h1>
-        <p className="text-slate-400 text-lg max-w-2xl leading-relaxed">
-          Source top-tier developer talent by analyzing open source contributions.
-          Identify experts in <span className="text-slate-200">React</span>, <span className="text-slate-200">Node.js</span>, <span className="text-slate-200">Rust</span>, and more.
+        <p className="text-slate-400 text-lg">
+          Find the best developers for your team based on their code.
         </p>
       </header>
 
-      <div className="w-full max-w-3xl mb-12 mx-auto flex gap-4">
+      <div className={`w-full mx-auto mb-12 flex gap-4 transition-all duration-300 ${viewMode === 'grid' ? 'max-w-3xl' : 'w-full px-4'}`}>
         <div className="flex-grow">
           <SearchInput onSearch={handleSearch} />
         </div>
@@ -84,10 +83,13 @@ function SearchPage() {
         </div>
       )}
 
-      <PackageList
-        results={results}
-        viewMode={viewMode}
-      />
+      <div className={`w-full mx-auto transition-all duration-300 ${viewMode === 'grid' ? 'max-w-7xl' : 'w-full px-4'}`}>
+        <PackageList
+          results={results}
+          title={results.length > 0 ? "Search Results" : undefined}
+          viewMode={viewMode}
+        />
+      </div>
 
       {loading && (
         <div className="flex justify-center py-12">

@@ -1,15 +1,76 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Trophy } from 'lucide-react';
+import { MapPin, Trophy, Heart } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import type { NpmSearchResult } from '../types';
 import { useDeveloperProfile } from '../hooks/useDeveloperProfile';
 
 interface DeveloperRowProps {
     result: NpmSearchResult;
     index: number;
+    initialIsSaved: boolean;
+    onToggleSave: (packageName: string, isSaved: boolean) => void;
+    teamId: string | null;
 }
 
-export function DeveloperRow({ result, index }: DeveloperRowProps) {
-    const { package: pkg } = result;
+export function DeveloperRow({ result, index, initialIsSaved, onToggleSave, teamId }: DeveloperRowProps) {
+    const { package: pkg, score } = result;
+    const [isSaved, setIsSaved] = useState(initialIsSaved);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        setIsSaved(initialIsSaved);
+    }, [initialIsSaved]);
+
+    const toggleSave = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            alert('Please sign in to save candidates');
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            if (isSaved) {
+                await supabase
+                    .from('saved_candidates')
+                    .delete()
+                    .eq('package_name', pkg.name);
+
+                onToggleSave(pkg.name, false);
+            } else {
+                await supabase
+                    .from('saved_candidates')
+                    .insert({
+                        user_id: user.id,
+                        team_id: teamId,
+                        package_name: pkg.name,
+                        package_version: pkg.version,
+                        description: pkg.description,
+                        keywords: pkg.keywords,
+                        date: pkg.date,
+                        npm_link: pkg.links.npm,
+                        repository_link: pkg.links.repository,
+                        homepage_link: pkg.links.homepage,
+                        publisher_username: pkg.publisher?.username,
+                        publisher_email: pkg.publisher?.email,
+                        score_final: score.final,
+                        score_quality: score.detail.quality,
+                        score_popularity: score.detail.popularity,
+                        score_maintenance: score.detail.maintenance,
+                        github_user_data: result.githubUser
+                    });
+                onToggleSave(pkg.name, true);
+            }
+        } catch (error) {
+            console.error('Error toggling save:', error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
     const {
         avatarUrl,
         githubProfileUrl,
@@ -142,6 +203,20 @@ export function DeveloperRow({ result, index }: DeveloperRowProps) {
                         No data
                     </div>
                 )}
+            </td>
+            {/* Save Button */}
+            <td className="py-4 pr-4 text-right">
+                <button
+                    onClick={toggleSave}
+                    disabled={isSaving}
+                    className={`p-2 rounded-lg transition-all ${isSaved
+                        ? 'bg-pink-500/10 text-pink-500 hover:bg-pink-500/20'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                        }`}
+                    title={isSaved ? "Unsave" : "Save"}
+                >
+                    <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+                </button>
             </td>
         </motion.tr>
     );
