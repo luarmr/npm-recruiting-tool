@@ -118,6 +118,7 @@ function App() {
                   company: githubUser.company || undefined,
                   twitter_username: githubUser.twitter_username || undefined,
                   followers: githubUser.followers,
+                  following: githubUser.following,
                   public_repos: githubUser.public_repos
                 }
               };

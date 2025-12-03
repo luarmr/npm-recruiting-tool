@@ -84,6 +84,13 @@ export function DeveloperRow({ result, index }: DeveloperRowProps) {
                 </span>
             </td>
 
+            {/* Following */}
+            <td className="py-4 px-4 text-center">
+                <span className="text-sm text-slate-300 font-mono">
+                    {result.githubUser?.following ?? '-'}
+                </span>
+            </td>
+
             {/* Location */}
             <td className="py-4 px-4">
                 <div className="flex items-center gap-1.5 text-sm text-slate-400 whitespace-nowrap">

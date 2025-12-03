@@ -46,6 +46,7 @@ export function PackageList({ results, title, viewMode }: PackageListProps) {
                                 <th className="py-4 px-4 font-medium">Bio</th>
                                 <th className="py-4 px-4 font-medium text-center">Repos</th>
                                 <th className="py-4 px-4 font-medium text-center">Followers</th>
+                                <th className="py-4 px-4 font-medium text-center">Following</th>
                                 <th className="py-4 px-4 font-medium">Location</th>
                                 <th className="py-4 pr-4 font-medium w-64">Contributions (Last Year)</th>
                             </tr>

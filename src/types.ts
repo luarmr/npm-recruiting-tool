@@ -44,6 +44,7 @@ export interface NpmSearchResult {
         company?: string;
         twitter_username?: string;
         followers?: number;
+        following?: number;
         public_repos?: number;
     };
 }

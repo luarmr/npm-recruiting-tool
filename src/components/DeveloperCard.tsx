@@ -95,6 +95,19 @@ export function DeveloperCard({ result, index }: DeveloperCardProps) {
                     <div className={`text-sm font-medium ${impactColor} flex items-center gap-2 mb-2`}>
                         {impactLevel}
                     </div>
+
+                    <div className="flex items-center gap-4 mb-4 text-xs text-slate-400">
+                        <div className="flex items-center gap-1" title="Followers">
+                            <span className="font-semibold text-slate-200">{result.githubUser?.followers ?? '-'}</span> Followers
+                        </div>
+                        <div className="flex items-center gap-1" title="Following">
+                            <span className="font-semibold text-slate-200">{result.githubUser?.following ?? '-'}</span> Following
+                        </div>
+                        <div className="flex items-center gap-1" title="Public Repositories">
+                            <span className="font-semibold text-slate-200">{result.githubUser?.public_repos ?? '-'}</span> Repos
+                        </div>
+                    </div>
+
                     <p className="text-slate-400 text-sm line-clamp-2">
                         Maintainer of <span className="text-slate-200 font-medium">{pkg.name}</span>. {pkg.description}
                     </p>
