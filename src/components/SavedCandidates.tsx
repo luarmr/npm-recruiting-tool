@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { PackageList } from './PackageList';
 import { type NpmSearchResult } from '../types';
-import { Loader2, Heart, Plus, X, Search } from 'lucide-react';
+import { Loader2, Heart, Plus, X, Search, LayoutGrid, List } from 'lucide-react';
 import { getGithubUser } from '../lib/github-api';
+import { useViewMode } from '../hooks/useViewMode';
 import { Link } from 'react-router-dom';
 // import { Layout } from './Layout';
 
@@ -15,6 +16,7 @@ export function SavedCandidates() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newCandidateUsername, setNewCandidateUsername] = useState('');
     const [addLoading, setAddLoading] = useState(false);
+    const { viewMode, setViewMode } = useViewMode();
 
     useEffect(() => {
         fetchSavedCandidates();
@@ -195,6 +197,31 @@ export function SavedCandidates() {
                 ))}
             </div>
 
+            <div className="flex justify-end mb-4">
+                <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700 h-[42px]">
+                    <button
+                        onClick={() => setViewMode('grid')}
+                        className={`p-2 rounded-lg transition-all ${viewMode === 'grid'
+                            ? 'bg-indigo-500 text-white shadow-lg'
+                            : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                            }`}
+                        title="Grid View"
+                    >
+                        <LayoutGrid className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => setViewMode('list')}
+                        className={`p-2 rounded-lg transition-all ${viewMode === 'list'
+                            ? 'bg-indigo-500 text-white shadow-lg'
+                            : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                            }`}
+                        title="List View"
+                    >
+                        <List className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+
             {filteredProfiles.length === 0 ? (
                 <div className="text-center py-20 bg-slate-900/30 rounded-3xl border border-slate-800/50 border-dashed">
                     <Heart className="w-12 h-12 text-slate-600 mx-auto mb-4" />
@@ -206,7 +233,7 @@ export function SavedCandidates() {
                     </p>
                 </div>
             ) : (
-                <PackageList results={filteredProfiles} title="" viewMode="grid" />
+                <PackageList results={filteredProfiles} title="" viewMode={viewMode} />
             )}
 
             {/* Add Candidate Modal */}

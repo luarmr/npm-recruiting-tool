@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getPackagesByTopic } from '../lib/npm-api';
 import type { NpmSearchResult } from '../types';
+import { useViewMode } from './useViewMode';
 
 export function useNpmSearch() {
     const [query, setQuery] = useState('');
@@ -8,7 +9,7 @@ export function useNpmSearch() {
     const [loading, setIsLoading] = useState(false);
     const [offset, setOffset] = useState(0);
     const [error, setError] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const { viewMode, setViewMode } = useViewMode();
     const [hasMore, setHasMore] = useState(true);
 
     // Heuristic to filter out organizations

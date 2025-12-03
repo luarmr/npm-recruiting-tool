@@ -70,6 +70,27 @@ export function DeveloperRow({ result, index }: DeveloperRowProps) {
                 </div>
             </td>
 
+            {/* Tech Stack */}
+            <td className="py-4 px-4 max-w-xs">
+                <div className="flex flex-wrap gap-1">
+                    {pkg.keywords?.slice(0, 3).map(tag => (
+                        <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/50 whitespace-nowrap">
+                            {tag}
+                        </span>
+                    ))}
+                    {(pkg.keywords?.length || 0) > 3 && (
+                        <span className="text-[10px] text-slate-500 px-1">+{pkg.keywords!.length - 3}</span>
+                    )}
+                </div>
+            </td>
+
+            {/* Impact Level */}
+            <td className="py-4 px-4 whitespace-nowrap">
+                <div className={`text-xs font-medium ${useDeveloperProfile(result).impactColor}`}>
+                    {useDeveloperProfile(result).impactLevel}
+                </div>
+            </td>
+
             {/* Repos */}
             <td className="py-4 px-4 text-center">
                 <span className="text-sm text-slate-300 font-mono">

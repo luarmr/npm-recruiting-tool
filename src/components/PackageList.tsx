@@ -100,6 +100,8 @@ export function PackageList({ results, title, viewMode }: PackageListProps) {
                                 <th className="py-4 px-4 font-medium">Name</th>
                                 <th className="py-4 px-4 font-medium">Username</th>
                                 <th className="py-4 px-4 font-medium">Bio</th>
+                                <th className="py-4 px-4 font-medium">Tech Stack</th>
+                                <th className="py-4 px-4 font-medium">Impact</th>
                                 <th className="py-4 px-4 font-medium text-center">Repos</th>
                                 <th className="py-4 px-4 font-medium text-center">Followers</th>
                                 <th className="py-4 px-4 font-medium text-center">Following</th>

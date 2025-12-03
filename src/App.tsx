@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { LayoutGrid, List } from 'lucide-react';
 import { Layout } from './components/Layout';
 import { SearchInput } from './components/SearchInput';
 import { PackageList } from './components/PackageList';
@@ -19,6 +20,7 @@ function SearchPage() {
     loadMore,
     hasMore,
     viewMode,
+    setViewMode,
   } = useNpmSearch();
 
   useEffect(() => {
@@ -48,8 +50,32 @@ function SearchPage() {
         </p>
       </header>
 
-      <div className="w-full max-w-3xl mb-12 mx-auto">
-        <SearchInput onSearch={handleSearch} />
+      <div className="w-full max-w-3xl mb-12 mx-auto flex gap-4">
+        <div className="flex-grow">
+          <SearchInput onSearch={handleSearch} />
+        </div>
+        <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700 h-[52px]">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid'
+              ? 'bg-indigo-500 text-white shadow-lg'
+              : 'text-slate-400 hover:text-white hover:bg-slate-700'
+              }`}
+            title="Grid View"
+          >
+            <LayoutGrid className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`p-2.5 rounded-lg transition-all ${viewMode === 'list'
+              ? 'bg-indigo-500 text-white shadow-lg'
+              : 'text-slate-400 hover:text-white hover:bg-slate-700'
+              }`}
+            title="List View"
+          >
+            <List className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {error && (
