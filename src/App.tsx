@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { LayoutGrid, List } from 'lucide-react';
+import { LayoutGrid, List, AlertTriangle, LogIn } from 'lucide-react';
 import { Layout } from './components/Layout';
 import { SearchInput } from './components/SearchInput';
 import { PackageList } from './components/PackageList';
@@ -10,6 +10,7 @@ import { useNpmSearch } from './hooks/useNpmSearch';
 import { useColumnPreferences } from './hooks/useColumnPreferences';
 import { ColumnSelector } from './components/ColumnSelector';
 import { useEffect } from 'react';
+import { AuthUIProvider, useAuthUI } from './context/AuthUIContext';
 
 function SearchPage() {
   const {
@@ -27,6 +28,7 @@ function SearchPage() {
     setSource
   } = useNpmSearch();
   const { visibleColumns, toggleColumn } = useColumnPreferences();
+  const { openAuthModal } = useAuthUI();
 
   useEffect(() => {
     // Initial search if empty
@@ -92,8 +94,29 @@ function SearchPage() {
       </div>
 
       {error && (
-        <div className="w-full max-w-3xl p-4 mb-8 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-center mx-auto">
-          {error}
+        <div className="w-full max-w-3xl mx-auto mb-8">
+          {error === 'RATE_LIMIT_EXCEEDED' ? (
+            <div className="p-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-center">
+              <div className="w-12 h-12 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-6 h-6 text-amber-500" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">GitHub API Rate Limit Reached</h3>
+              <p className="text-slate-400 mb-6 max-w-lg mx-auto">
+                You've hit the limit for anonymous searches (60/hour). To continue searching with higher limits (5,000/hour), please sign in with your GitHub account.
+              </p>
+              <button
+                onClick={openAuthModal}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-colors"
+              >
+                <LogIn className="w-4 h-4" />
+                Sign In with GitHub
+              </button>
+            </div>
+          ) : (
+            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-center">
+              {error}
+            </div>
+          )}
         </div>
       )}
 
@@ -128,17 +151,19 @@ function SearchPage() {
 
 function App() {
   return (
-    <Router>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<SearchPage />} />
-          <Route path="/saved" element={<SavedCandidates />} />
-          <Route path="/team" element={<TeamSettings />} />
-          <Route path="/candidate/:id" element={<CandidateDetail />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Layout>
-    </Router>
+    <AuthUIProvider>
+      <Router>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<SearchPage />} />
+            <Route path="/saved" element={<SavedCandidates />} />
+            <Route path="/team" element={<TeamSettings />} />
+            <Route path="/candidate/:id" element={<CandidateDetail />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Layout>
+      </Router>
+    </AuthUIProvider>
   );
 }
 

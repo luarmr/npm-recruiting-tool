@@ -137,7 +137,11 @@ export function useNpmSearch() {
 
         } catch (err: any) {
             console.error(err);
-            setError('Failed to fetch results. Please try again.');
+            if (err.message === 'RATE_LIMIT_EXCEEDED') {
+                setError('RATE_LIMIT_EXCEEDED');
+            } else {
+                setError('Failed to fetch results. Please try again.');
+            }
         } finally {
             setIsLoading(false);
         }

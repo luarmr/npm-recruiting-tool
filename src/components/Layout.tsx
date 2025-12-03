@@ -4,6 +4,7 @@ import { AuthModal } from './AuthModal';
 import { supabase } from '../lib/supabase';
 import { type User } from '@supabase/supabase-js';
 import { LogIn, LogOut, User as UserIcon, Heart, Users } from 'lucide-react';
+import { useAuthUI } from '../context/AuthUIContext';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -16,7 +17,7 @@ interface Team {
 }
 
 export function Layout({ children }: LayoutProps) {
-    const [isAuthOpen, setIsAuthOpen] = useState(false);
+    const { isAuthOpen, openAuthModal, closeAuthModal } = useAuthUI();
     const [user, setUser] = useState<User | null>(null);
     const [team, setTeam] = useState<Team | null>(null);
 
@@ -83,7 +84,7 @@ export function Layout({ children }: LayoutProps) {
 
     return (
         <div className="h-screen overflow-hidden bg-[#0B1120] text-slate-100 font-sans selection:bg-indigo-500/30 flex flex-col items-center">
-            <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+            <AuthModal isOpen={isAuthOpen} onClose={closeAuthModal} />
 
             {/* Subtle Background Pattern */}
             <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
@@ -139,7 +140,7 @@ export function Layout({ children }: LayoutProps) {
                             </>
                         ) : (
                             <button
-                                onClick={() => setIsAuthOpen(true)}
+                                onClick={openAuthModal}
                                 className="text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
                             >
                                 <LogIn className="w-4 h-4" />
