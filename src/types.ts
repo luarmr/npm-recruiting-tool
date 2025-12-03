@@ -52,7 +52,7 @@ export interface CandidateResult {
     savedBy?: string; // Email of the user who saved this candidate
     status?: 'new' | 'contacted' | 'replied' | 'interviewing' | 'hired' | 'rejected';
     id?: number; // Database ID for saved candidates
-    source: 'npm' | 'pypi';
+    source: 'npm' | 'pypi' | 'github';
 }
 
 export interface NpmSearchResponse {

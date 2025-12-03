@@ -116,7 +116,8 @@ export function SavedCandidates() {
                     score_popularity: 0,
                     score_maintenance: 0,
                     github_user_data: githubUser,
-                    status: 'new'
+                    status: 'new',
+                    source: 'github'
                 });
 
             if (error) throw error;

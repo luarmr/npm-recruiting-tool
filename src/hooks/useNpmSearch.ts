@@ -4,7 +4,7 @@ import { searchPyPI } from '../lib/pypi-api';
 import type { CandidateResult } from '../types';
 import { useViewMode } from './useViewMode';
 
-export type SearchSource = 'npm' | 'pypi';
+export type SearchSource = 'npm' | 'pypi' | 'github';
 
 export function useNpmSearch() {
     const [query, setQuery] = useState('');
