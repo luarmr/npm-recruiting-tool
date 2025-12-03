@@ -5,15 +5,18 @@ import { supabase } from '../lib/supabase';
 import type { NpmSearchResult } from '../types';
 import { useDeveloperProfile } from '../hooks/useDeveloperProfile';
 
+import type { ColumnId } from '../hooks/useColumnPreferences';
+
 interface DeveloperRowProps {
     result: NpmSearchResult;
     index: number;
-    initialIsSaved: boolean;
-    onToggleSave: (packageName: string, isSaved: boolean) => void;
-    teamId: string | null;
+    initialIsSaved?: boolean;
+    onToggleSave?: (packageName: string, isSaved: boolean) => void;
+    teamId?: string | null;
+    visibleColumns: Set<ColumnId>;
 }
 
-export function DeveloperRow({ result, index, initialIsSaved, onToggleSave, teamId }: DeveloperRowProps) {
+export function DeveloperRow({ result, index, initialIsSaved = false, onToggleSave, teamId, visibleColumns }: DeveloperRowProps) {
     const { package: pkg, score } = result;
     const [isSaved, setIsSaved] = useState(initialIsSaved);
     const [isSaving, setIsSaving] = useState(false);
@@ -40,7 +43,7 @@ export function DeveloperRow({ result, index, initialIsSaved, onToggleSave, team
                     .delete()
                     .eq('package_name', pkg.name);
 
-                onToggleSave(pkg.name, false);
+                onToggleSave?.(pkg.name, false);
             } else {
                 await supabase
                     .from('saved_candidates')
@@ -63,7 +66,7 @@ export function DeveloperRow({ result, index, initialIsSaved, onToggleSave, team
                         score_maintenance: score.detail.maintenance,
                         github_user_data: result.githubUser
                     });
-                onToggleSave(pkg.name, true);
+                onToggleSave?.(pkg.name, true);
             }
         } catch (error) {
             console.error('Error toggling save:', error);
@@ -80,6 +83,8 @@ export function DeveloperRow({ result, index, initialIsSaved, onToggleSave, team
         graphError,
         setGraphError
     } = useDeveloperProfile(result);
+
+    const userData = result.githubUser; // Alias for brevity
 
     return (
         <motion.tr
@@ -113,97 +118,116 @@ export function DeveloperRow({ result, index, initialIsSaved, onToggleSave, team
             </td>
 
             {/* Username */}
-            <td className="py-4 px-4">
-                <a
-                    href={githubProfileUrl || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-indigo-400 hover:text-indigo-300 text-sm font-medium hover:underline"
-                >
-                    @{githubUsername || pkg.publisher?.username}
-                </a>
-            </td>
+            {visibleColumns.has('username') && (
+                <td className="py-4 px-4">
+                    <a
+                        href={githubProfileUrl || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-400 hover:text-indigo-300 text-sm font-medium hover:underline"
+                    >
+                        @{githubUsername || pkg.publisher?.username}
+                    </a>
+                </td>
+            )}
 
             {/* Bio */}
-            <td className="py-4 px-4 max-w-xs">
-                <div className="text-sm text-slate-400 truncate" title={result.githubUser?.bio || pkg.description}>
-                    {result.githubUser?.bio || pkg.description}
-                </div>
-            </td>
+            {visibleColumns.has('bio') && (
+                <td className="py-4 px-4 max-w-xs">
+                    <div className="text-sm text-slate-400 truncate" title={result.githubUser?.bio || pkg.description}>
+                        {result.githubUser?.bio || pkg.description}
+                    </div>
+                </td>
+            )}
 
             {/* Tech Stack */}
-            <td className="py-4 px-4 max-w-xs">
-                <div className="flex flex-wrap gap-1">
-                    {pkg.keywords?.slice(0, 3).map(tag => (
-                        <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/50 whitespace-nowrap">
-                            {tag}
-                        </span>
-                    ))}
-                    {(pkg.keywords?.length || 0) > 3 && (
-                        <span className="text-[10px] text-slate-500 px-1">+{pkg.keywords!.length - 3}</span>
-                    )}
-                </div>
-            </td>
+            {visibleColumns.has('tech_stack') && (
+                <td className="py-4 px-4 max-w-xs">
+                    <div className="flex flex-wrap gap-1">
+                        {pkg.keywords?.slice(0, 3).map(tag => (
+                            <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/50 whitespace-nowrap">
+                                {tag}
+                            </span>
+                        ))}
+                        {(pkg.keywords?.length || 0) > 3 && (
+                            <span className="text-[10px] text-slate-500 px-1">+{pkg.keywords!.length - 3}</span>
+                        )}
+                    </div>
+                </td>
+            )}
 
             {/* Impact Level */}
-            <td className="py-4 px-4 whitespace-nowrap">
-                <div className={`text-xs font-medium ${useDeveloperProfile(result).impactColor}`}>
-                    {useDeveloperProfile(result).impactLevel}
-                </div>
-            </td>
+            {visibleColumns.has('impact') && (
+                <td className="py-4 px-4 whitespace-nowrap">
+                    <div className={`text-xs font-medium ${useDeveloperProfile(result).impactColor}`}>
+                        {useDeveloperProfile(result).impactLevel}
+                    </div>
+                </td>
+            )}
 
             {/* Repos */}
-            <td className="py-4 px-4 text-center">
-                <span className="text-sm text-slate-300 font-mono">
-                    {result.githubUser?.public_repos ?? '-'}
-                </span>
-            </td>
+            {visibleColumns.has('repos') && (
+                <td className="py-4 px-4 text-center">
+                    <span className="text-sm text-slate-300 font-mono">
+                        {userData?.public_repos ?? '-'}
+                    </span>
+                </td>
+            )}
 
             {/* Followers */}
-            <td className="py-4 px-4 text-center">
-                <span className="text-sm text-slate-300 font-mono">
-                    {result.githubUser?.followers ?? '-'}
-                </span>
-            </td>
+            {visibleColumns.has('followers') && (
+                <td className="py-4 px-4 text-center">
+                    <span className="text-sm text-slate-300 font-mono">
+                        {userData?.followers ?? '-'}
+                    </span>
+                </td>
+            )}
 
             {/* Following */}
-            <td className="py-4 px-4 text-center">
-                <span className="text-sm text-slate-300 font-mono">
-                    {result.githubUser?.following ?? '-'}
-                </span>
-            </td>
+            {visibleColumns.has('following') && (
+                <td className="py-4 px-4 text-center">
+                    <span className="text-sm text-slate-300 font-mono">
+                        {userData?.following ?? '-'}
+                    </span>
+                </td>
+            )}
 
             {/* Location */}
-            <td className="py-4 px-4">
-                <div className="flex items-center gap-1.5 text-sm text-slate-400 whitespace-nowrap">
-                    {result.githubUser?.location ? (
-                        <>
-                            <MapPin className="w-3 h-3" />
-                            <span className="truncate max-w-[150px]">{result.githubUser.location}</span>
-                        </>
-                    ) : (
-                        <span className="text-slate-600 italic">N/A</span>
-                    )}
-                </div>
-            </td>
+            {visibleColumns.has('location') && (
+                <td className="py-4 px-4">
+                    <div className="flex items-center gap-1.5 text-sm text-slate-400 whitespace-nowrap">
+                        {userData?.location ? (
+                            <>
+                                <MapPin className="w-3 h-3" />
+                                <span className="truncate max-w-[150px]">{userData.location}</span>
+                            </>
+                        ) : (
+                            <span className="text-slate-600 italic">N/A</span>
+                        )}
+                    </div>
+                </td>
+            )}
 
             {/* Contributions Graph */}
-            <td className="py-4 pr-4 w-64">
-                {githubUsername && !graphError && hasVerifiedGithub ? (
-                    <div className="h-8 overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
-                        <img
-                            src={`https://ghchart.rshah.org/10b981/${githubUsername}`}
-                            alt="Contributions"
-                            className="w-full h-full object-cover object-right"
-                            onError={() => setGraphError(true)}
-                        />
-                    </div>
-                ) : (
-                    <div className="h-8 w-full bg-slate-800/30 rounded flex items-center justify-center text-xs text-slate-600">
-                        No data
-                    </div>
-                )}
-            </td>
+            {visibleColumns.has('contributions') && (
+                <td className="py-4 pr-4 w-64">
+                    {githubUsername && !graphError && hasVerifiedGithub ? (
+                        <div className="h-8 overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
+                            <img
+                                src={`https://ghchart.rshah.org/10b981/${githubUsername}`}
+                                alt="Contributions"
+                                className="w-full h-full object-cover object-right"
+                                onError={() => setGraphError(true)}
+                            />
+                        </div>
+                    ) : (
+                        <div className="h-8 w-full bg-slate-800/30 rounded flex items-center justify-center text-xs text-slate-600">
+                            No data
+                        </div>
+                    )}
+                </td>
+            )}
+
             {/* Save Button */}
             <td className="py-4 pr-4 text-right">
                 <button
@@ -218,6 +242,6 @@ export function DeveloperRow({ result, index, initialIsSaved, onToggleSave, team
                     <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
                 </button>
             </td>
-        </motion.tr>
+        </motion.tr >
     );
 }

@@ -3,6 +3,8 @@ import type { NpmSearchResult } from '../types';
 import { DeveloperCard } from './DeveloperCard';
 import { DeveloperRow } from './DeveloperRow';
 import { supabase } from '../lib/supabase';
+import { useColumnPreferences } from '../hooks/useColumnPreferences';
+import { ColumnSelector } from './ColumnSelector';
 
 interface PackageListProps {
     results: NpmSearchResult[];
@@ -13,6 +15,7 @@ interface PackageListProps {
 export function PackageList({ results, title, viewMode }: PackageListProps) {
     const [savedPackageNames, setSavedPackageNames] = useState<Set<string>>(new Set());
     const [teamId, setTeamId] = useState<string | null>(null);
+    const { visibleColumns, toggleColumn } = useColumnPreferences();
 
     useEffect(() => {
         fetchUserData();
@@ -66,12 +69,17 @@ export function PackageList({ results, title, viewMode }: PackageListProps) {
     return (
         <div className="mb-12">
             {title && (
-                <h2 className="text-2xl font-bold text-white mb-6 flex items-center justify-center gap-2">
-                    {title}
-                    <span className="text-sm font-normal text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
-                        {results.length}
-                    </span>
-                </h2>
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                        {title}
+                        <span className="text-sm font-normal text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
+                            {results.length}
+                        </span>
+                    </h2>
+                    {viewMode === 'list' && (
+                        <ColumnSelector visibleColumns={visibleColumns} onToggleColumn={toggleColumn} />
+                    )}
+                </div>
             )}
 
             {viewMode === 'grid' ? (
@@ -98,15 +106,15 @@ export function PackageList({ results, title, viewMode }: PackageListProps) {
                             <tr className="border-b border-slate-700 bg-slate-800/50 text-xs uppercase tracking-wider text-slate-400">
                                 <th className="py-4 pl-4 font-medium w-16">Avatar</th>
                                 <th className="py-4 px-4 font-medium">Name</th>
-                                <th className="py-4 px-4 font-medium">Username</th>
-                                <th className="py-4 px-4 font-medium">Bio</th>
-                                <th className="py-4 px-4 font-medium">Tech Stack</th>
-                                <th className="py-4 px-4 font-medium">Impact</th>
-                                <th className="py-4 px-4 font-medium text-center">Repos</th>
-                                <th className="py-4 px-4 font-medium text-center">Followers</th>
-                                <th className="py-4 px-4 font-medium text-center">Following</th>
-                                <th className="py-4 px-4 font-medium">Location</th>
-                                <th className="py-4 pr-4 font-medium w-64">Contributions (Last Year)</th>
+                                {visibleColumns.has('username') && <th className="py-4 px-4 font-medium">Username</th>}
+                                {visibleColumns.has('bio') && <th className="py-4 px-4 font-medium">Bio</th>}
+                                {visibleColumns.has('tech_stack') && <th className="py-4 px-4 font-medium">Tech Stack</th>}
+                                {visibleColumns.has('impact') && <th className="py-4 px-4 font-medium">Impact</th>}
+                                {visibleColumns.has('repos') && <th className="py-4 px-4 font-medium text-center">Repos</th>}
+                                {visibleColumns.has('followers') && <th className="py-4 px-4 font-medium text-center">Followers</th>}
+                                {visibleColumns.has('following') && <th className="py-4 px-4 font-medium text-center">Following</th>}
+                                {visibleColumns.has('location') && <th className="py-4 px-4 font-medium">Location</th>}
+                                {visibleColumns.has('contributions') && <th className="py-4 pr-4 font-medium w-64">Contributions (Last Year)</th>}
                                 <th className="py-4 pr-4 font-medium w-16 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -119,6 +127,7 @@ export function PackageList({ results, title, viewMode }: PackageListProps) {
                                     initialIsSaved={savedPackageNames.has(result.package.name)}
                                     onToggleSave={handleToggleSave}
                                     teamId={teamId}
+                                    visibleColumns={visibleColumns}
                                 />
                             ))}
                         </tbody>
