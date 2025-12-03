@@ -47,6 +47,9 @@ export interface NpmSearchResult {
         following?: number;
         public_repos?: number;
     };
+    savedBy?: string; // Email of the user who saved this candidate
+    status?: 'new' | 'contacted' | 'replied' | 'interviewing' | 'hired' | 'rejected';
+    id?: number; // Database ID for saved candidates
 }
 
 export interface NpmSearchResponse {

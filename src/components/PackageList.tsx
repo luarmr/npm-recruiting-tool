@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import type { NpmSearchResult } from '../types';
 import { DeveloperCard } from './DeveloperCard';
 import { DeveloperRow } from './DeveloperRow';
+import { supabase } from '../lib/supabase';
 
 interface PackageListProps {
     results: NpmSearchResult[];
@@ -9,6 +11,54 @@ interface PackageListProps {
 }
 
 export function PackageList({ results, title, viewMode }: PackageListProps) {
+    const [savedPackageNames, setSavedPackageNames] = useState<Set<string>>(new Set());
+    const [teamId, setTeamId] = useState<string | null>(null);
+
+    useEffect(() => {
+        fetchUserData();
+    }, [results]);
+
+    const fetchUserData = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            setSavedPackageNames(new Set());
+            return;
+        }
+
+        // 1. Get User's Team
+        const { data: teamData } = await supabase
+            .from('team_members')
+            .select('team_id')
+            .eq('user_id', user.id)
+            .single();
+
+        if (teamData) setTeamId(teamData.team_id);
+
+        // 2. Get Saved Status (Own + Team)
+        const packageNames = results.map(r => r.package.name);
+        if (packageNames.length === 0) return;
+
+        // We rely on RLS to return both own and team saves
+        const { data } = await supabase
+            .from('saved_candidates')
+            .select('package_name')
+            .in('package_name', packageNames);
+
+        if (data) {
+            setSavedPackageNames(new Set(data.map(item => item.package_name)));
+        }
+    };
+
+    const handleToggleSave = (packageName: string, isSaved: boolean) => {
+        const newSet = new Set(savedPackageNames);
+        if (isSaved) {
+            newSet.add(packageName);
+        } else {
+            newSet.delete(packageName);
+        }
+        setSavedPackageNames(newSet);
+    };
+
     if (results.length === 0) {
         return null;
     }
@@ -31,7 +81,13 @@ export function PackageList({ results, title, viewMode }: PackageListProps) {
                             key={`${result.package.name}-${index}`}
                             className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] max-w-md"
                         >
-                            <DeveloperCard result={result} index={index} />
+                            <DeveloperCard
+                                result={result}
+                                index={index}
+                                initialIsSaved={savedPackageNames.has(result.package.name)}
+                                onToggleSave={handleToggleSave}
+                                teamId={teamId}
+                            />
                         </div>
                     ))}
                 </div>

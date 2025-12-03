@@ -1,14 +1,20 @@
+import { useState, useEffect } from 'react';
 import type { NpmSearchResult } from '../types';
-import { ExternalLink, Github, Trophy, TrendingUp, ShieldCheck, Code2 } from 'lucide-react';
+import { ExternalLink, Github, Trophy, TrendingUp, ShieldCheck, Code2, Heart, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDeveloperProfile } from '../hooks/useDeveloperProfile';
+import { supabase } from '../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 
 interface DeveloperCardProps {
     result: NpmSearchResult;
     index: number;
+    initialIsSaved: boolean;
+    onToggleSave: (packageName: string, isSaved: boolean) => void;
+    teamId: string | null;
 }
 
-export function DeveloperCard({ result, index }: DeveloperCardProps) {
+export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, teamId }: DeveloperCardProps) {
     const { package: pkg, score } = result;
     const {
         githubUsername,
@@ -23,23 +29,86 @@ export function DeveloperCard({ result, index }: DeveloperCardProps) {
         setGraphError
     } = useDeveloperProfile(result);
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.05 }}
-            className="group relative bg-slate-900 border border-slate-800 hover:border-indigo-500/30 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 flex flex-col h-full"
-        >
+    const [isSaved, setIsSaved] = useState(initialIsSaved);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        setIsSaved(initialIsSaved);
+    }, [initialIsSaved]);
+
+    const toggleSave = async (e: React.MouseEvent) => {
+        e.preventDefault(); // Prevent navigation
+        e.stopPropagation();
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            alert('Please sign in to save candidates');
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            if (isSaved) {
+                await supabase
+                    .from('saved_candidates')
+                    .delete()
+                    .eq('package_name', pkg.name);
+
+                onToggleSave(pkg.name, false);
+            } else {
+                await supabase
+                    .from('saved_candidates')
+                    .insert({
+                        user_id: user.id,
+                        team_id: teamId,
+                        package_name: pkg.name,
+                        package_version: pkg.version,
+                        description: pkg.description,
+                        keywords: pkg.keywords,
+                        date: pkg.date,
+                        npm_link: pkg.links.npm,
+                        repository_link: pkg.links.repository,
+                        homepage_link: pkg.links.homepage,
+                        publisher_username: pkg.publisher?.username,
+                        publisher_email: pkg.publisher?.email,
+                        score_final: score.final,
+                        score_quality: score.detail.quality,
+                        score_popularity: score.detail.popularity,
+                        score_maintenance: score.detail.maintenance,
+                        github_user_data: result.githubUser
+                    });
+                onToggleSave(pkg.name, true);
+            }
+        } catch (error) {
+            console.error('Error toggling save:', error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const CardContent = () => (
+        <>
             {/* Header Background */}
             <div className="h-24 bg-gradient-to-r from-slate-800 to-slate-900 relative overflow-hidden">
                 <div className="absolute inset-0 bg-grid-white/[0.02] bg-[length:16px_16px]" />
-                <div className="absolute top-0 right-0 p-4">
+                <div className="absolute top-0 right-0 p-4 flex gap-2">
                     {showTopTalent && (
                         <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
                             <Trophy className="w-3 h-3" />
                             <span>Top Talent</span>
                         </div>
                     )}
+                    <button
+                        onClick={toggleSave}
+                        disabled={isSaving}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all z-10 ${isSaved
+                            ? 'bg-pink-500/10 text-pink-500 border border-pink-500/20'
+                            : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-white hover:border-slate-600'
+                            }`}
+                    >
+                        <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+                        {isSaved ? 'Saved' : 'Save'}
+                    </button>
                 </div>
             </div>
 
@@ -60,7 +129,8 @@ export function DeveloperCard({ result, index }: DeveloperCardProps) {
                                 href={githubProfileUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors border border-slate-700/50"
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors border border-slate-700/50 z-10"
                                 title="GitHub Profile"
                             >
                                 <Github className="w-4 h-4" />
@@ -71,7 +141,8 @@ export function DeveloperCard({ result, index }: DeveloperCardProps) {
                                 href={pkg.links.homepage}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors border border-slate-700/50"
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors border border-slate-700/50 z-10"
                                 title="Portfolio / Homepage"
                             >
                                 <ExternalLink className="w-4 h-4" />
@@ -144,6 +215,22 @@ export function DeveloperCard({ result, index }: DeveloperCardProps) {
                     </div>
                 )}
 
+                {/* Saved By Badge */}
+                {result.savedBy && (
+                    <div className="mb-4 flex items-center gap-2 text-xs text-slate-500 bg-slate-800/30 p-2 rounded-lg border border-slate-800/50">
+                        <Users className="w-3 h-3" />
+                        <span>Saved by <span className="text-slate-300">{result.savedBy}</span></span>
+                    </div>
+                )}
+
+                {/* Status Badge */}
+                {result.status && (
+                    <div className="mb-4 flex items-center gap-2 text-xs text-slate-500 bg-slate-800/30 p-2 rounded-lg border border-slate-800/50">
+                        <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                        <span className="uppercase tracking-wider font-bold text-indigo-400">{result.status}</span>
+                    </div>
+                )}
+
                 {/* Impact Metrics */}
                 <div className="mt-auto pt-6 border-t border-slate-800/50 grid grid-cols-2 gap-4">
                     <div>
@@ -170,6 +257,36 @@ export function DeveloperCard({ result, index }: DeveloperCardProps) {
                     </div>
                 </div>
             </div>
+        </>
+    );
+
+    const navigate = useNavigate();
+
+    const handleCardClick = () => {
+        if (result.id) {
+            navigate(`/candidate/${result.id}`);
+        }
+    };
+
+    const containerClasses = `group relative bg-slate-900 border border-slate-800 hover:border-indigo-500/30 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 flex flex-col h-full text-left ${result.id ? 'cursor-pointer' : ''}`;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+            className={containerClasses}
+            onClick={handleCardClick}
+            role={result.id ? "button" : undefined}
+            tabIndex={result.id ? 0 : undefined}
+            onKeyDown={(e) => {
+                if (result.id && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    handleCardClick();
+                }
+            }}
+        >
+            <CardContent />
         </motion.div>
     );
 }

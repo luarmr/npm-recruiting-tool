@@ -7,6 +7,32 @@ Currently, two official plugins are available:
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
+## 🗄️ Supabase Setup (Required for Auth & Saving)
+
+1.  **Create a Project**: Go to [supabase.com](https://supabase.com) and create a new project.
+2.  **Database Schema**: Go to the SQL Editor in your Supabase dashboard and run the contents of `supabase_schema.sql` (found in this repo).
+3.  **Environment Variables**:
+    *   Get your `Project URL` and `anon public` key from Project Settings > API.
+    *   For local development: Create `.env.local` and add:
+        ```
+        VITE_SUPABASE_URL=your_project_url
+        VITE_SUPABASE_ANON_KEY=your_anon_key
+        ```
+
+## ship Deployment
+
+The app is ready for Netlify.
+
+1.  **Connect Repo**: Import this repository into Netlify.
+2.  **Environment Variables**: In Site Settings > Build & Deploy > Environment, add:
+    *   `VITE_SUPABASE_URL`
+    *   `VITE_SUPABASE_ANON_KEY`
+3.  **Deploy**: Trigger a deployment.
+
+## 📝 License
+
+MIT
+
 ## React Compiler
 
 The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).

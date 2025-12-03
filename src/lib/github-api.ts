@@ -17,28 +17,64 @@ export interface GithubUser {
     updated_at: string;
 }
 
-const CACHE = new Map<string, GithubUser | null>();
+interface CacheEntry {
+    data: GithubUser | null;
+    timestamp: number;
+}
+
+const CACHE_KEY = 'github_user_cache';
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+function getCache(): Record<string, CacheEntry> {
+    try {
+        return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+    } catch {
+        return {};
+    }
+}
+
+function setCache(username: string, data: GithubUser | null) {
+    const cache = getCache();
+    cache[username] = {
+        data,
+        timestamp: Date.now()
+    };
+    try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+    } catch (e) {
+        console.warn('Failed to save to localStorage cache', e);
+    }
+}
 
 export async function getGithubUser(username: string): Promise<GithubUser | null> {
-    if (CACHE.has(username)) {
-        return CACHE.get(username) || null;
+    const cache = getCache();
+    const entry = cache[username];
+
+    if (entry && (Date.now() - entry.timestamp < CACHE_DURATION)) {
+        return entry.data;
     }
 
     try {
         const response = await fetch(`https://api.github.com/users/${username}`);
         if (!response.ok) {
             if (response.status === 404) {
-                CACHE.set(username, null);
+                setCache(username, null);
                 return null;
             }
-            // Rate limit or other error
+            if (response.status === 403) {
+                throw new Error('RATE_LIMIT_EXCEEDED');
+            }
+            // Other errors
             console.warn(`GitHub API error for ${username}: ${response.status}`);
             return null;
         }
         const data = await response.json();
-        CACHE.set(username, data);
+        setCache(username, data);
         return data;
-    } catch (error) {
+    } catch (error: any) {
+        if (error.message === 'RATE_LIMIT_EXCEEDED') {
+            throw error;
+        }
         console.error(`Failed to fetch GitHub user ${username}:`, error);
         return null;
     }
