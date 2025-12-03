@@ -66,13 +66,25 @@ export function Layout({ children }: LayoutProps) {
     };
 
     const checkInvites = async (email?: string) => {
-        if (!email) return;
-        const { count } = await supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        const githubUsername = user?.user_metadata?.user_name;
+
+        let query = supabase
             .from('team_invitations')
             .select('*', { count: 'exact', head: true })
-            .eq('email', email)
             .eq('status', 'pending');
 
+        if (email && githubUsername) {
+            query = query.or(`email.eq.${email},github_username.eq.${githubUsername}`);
+        } else if (email) {
+            query = query.eq('email', email);
+        } else if (githubUsername) {
+            query = query.eq('github_username', githubUsername);
+        } else {
+            return;
+        }
+
+        const { count } = await query;
         setHasInvites(!!count && count > 0);
     };
 

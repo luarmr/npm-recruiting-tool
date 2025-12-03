@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Users, Mail, LogOut, Plus, Clock, Trash2, Shield, ArrowLeft } from 'lucide-react';
+import { Users, LogOut, Plus, Clock, Trash2, Shield, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { InviteUserSearch } from './InviteUserSearch';
+import type { GithubUser } from '../lib/github-api';
 
 interface Team {
     id: string;
@@ -30,7 +32,7 @@ export function TeamSettings() {
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
     const [teamName, setTeamName] = useState('');
-    const [inviteEmail, setInviteEmail] = useState('');
+    const [selectedGithubUser, setSelectedGithubUser] = useState<GithubUser | null>(null);
 
     const [members, setMembers] = useState<Profile[]>([]);
     const [sentInvites, setSentInvites] = useState<Invitation[]>([]);
@@ -157,18 +159,26 @@ export function TeamSettings() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user || !team) return;
 
+            if (!selectedGithubUser) {
+                setError('Please select a GitHub user to invite');
+                return;
+            }
+
+            const inviteData = {
+                team_id: team.id,
+                created_by: user.id,
+                email: null,
+                github_username: selectedGithubUser.login
+            };
+
             const { error } = await supabase
                 .from('team_invitations')
-                .insert({
-                    team_id: team.id,
-                    email: inviteEmail,
-                    created_by: user.id
-                });
+                .insert(inviteData);
 
             if (error) throw error;
 
-            setInviteEmail('');
-            setSuccessMsg(`Invitation sent to ${inviteEmail}`);
+            setSelectedGithubUser(null);
+            setSuccessMsg(`Invitation sent to @${selectedGithubUser.login}`);
             fetchSentInvites(team.id);
         } catch (err: any) {
             setError(err.message);
@@ -283,24 +293,26 @@ export function TeamSettings() {
 
                             <div className="space-y-4">
                                 <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Invite New Member</h3>
-                                <form onSubmit={handleInvite} className="flex gap-3">
-                                    <div className="flex-1 relative">
-                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                        <input
-                                            type="email"
-                                            value={inviteEmail}
-                                            onChange={(e) => setInviteEmail(e.target.value)}
-                                            placeholder="colleague@company.com"
-                                            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                                            required
+
+
+                                // ... (render)
+                                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Invite New Member</h3>
+                                <form onSubmit={handleInvite} className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-slate-400">Search by GitHub Username</label>
+                                        <InviteUserSearch
+                                            onSelect={setSelectedGithubUser}
+                                            selectedUser={selectedGithubUser}
                                         />
                                     </div>
+
                                     <button
                                         type="submit"
-                                        disabled={actionLoading}
-                                        className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-xl font-medium transition-colors flex items-center gap-2"
+                                        disabled={actionLoading || !selectedGithubUser}
+                                        className="w-full bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <Plus className="w-4 h-4" /> Invite
+                                        <Plus className="w-4 h-4" />
+                                        {selectedGithubUser ? `Invite @${selectedGithubUser.login}` : 'Select a user to invite'}
                                     </button>
                                 </form>
                             </div>
