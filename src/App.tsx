@@ -4,7 +4,7 @@ import { SearchInput } from './components/SearchInput';
 import { PackageList } from './components/PackageList';
 import { getPackagesByTopic } from './lib/npm-api';
 import type { NpmSearchResult } from './types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LayoutGrid, List } from 'lucide-react';
 
 function App() {
   const [results, setResults] = useState<NpmSearchResult[]>([]);
@@ -12,6 +12,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [offset, setOffset] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Heuristic to filter out organizations
   const isOrganization = (result: NpmSearchResult) => {
@@ -116,7 +117,8 @@ function App() {
                   bio: githubUser.bio || undefined,
                   company: githubUser.company || undefined,
                   twitter_username: githubUser.twitter_username || undefined,
-                  followers: githubUser.followers
+                  followers: githubUser.followers,
+                  public_repos: githubUser.public_repos
                 }
               };
             }
@@ -164,13 +166,33 @@ function App() {
 
       <div className="space-y-12">
         {query && !isLoading && (
-          <div className="flex flex-col items-center justify-center mb-8 pb-4 border-b border-slate-800/50 gap-2">
-            <h2 className="text-xl font-semibold text-slate-200 text-center">
-              Candidates for <span className="text-indigo-400">"{query}"</span>
-            </h2>
-            <span className="text-sm text-slate-500">
-              Showing {results.length} distinct profiles
-            </span>
+          <div className="flex flex-col items-center justify-center mb-8 pb-4 border-b border-slate-800/50 gap-4">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-slate-200">
+                Candidates for <span className="text-indigo-400">"{query}"</span>
+              </h2>
+              <span className="text-sm text-slate-500">
+                Showing {results.length} distinct profiles
+              </span>
+            </div>
+
+            {/* View Toggle */}
+            <div className="flex bg-slate-800/50 p-1 rounded-lg border border-slate-700/50">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                title="Grid View"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'}`}
+                title="List View"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
 
@@ -182,7 +204,7 @@ function App() {
         ) : (
           <>
             <div className="space-y-16">
-              <PackageList results={results} title="Top Candidates" />
+              <PackageList results={results} title="Top Candidates" viewMode={viewMode} />
             </div>
 
             {/* Load More Button */}

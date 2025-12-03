@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import type { NpmSearchResult } from '../types';
 import { ExternalLink, Github, Trophy, TrendingUp, ShieldCheck, Code2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useDeveloperProfile } from '../hooks/useDeveloperProfile';
 
 interface DeveloperCardProps {
     result: NpmSearchResult;
@@ -10,68 +10,18 @@ interface DeveloperCardProps {
 
 export function DeveloperCard({ result, index }: DeveloperCardProps) {
     const { package: pkg, score } = result;
-
-    // Extract GitHub username
-    // Prioritize the NPM publisher username as it represents the individual "Candidate"
-    // Only fall back to repository owner if publisher is missing (though repo owner is often an Org)
-    let githubUsername: string | undefined = undefined;
-
-    // 1. Try to get username from repository URL (most reliable for finding the actual GitHub user)
-    if (pkg.links.repository) {
-        // Support both https://github.com/user/repo and git@github.com:user/repo
-        const match = pkg.links.repository.match(/github\.com[:\/]([^\/]+)/);
-        if (match && match[1]) {
-            githubUsername = match[1];
-        }
-    }
-
-    // 2. If no repo match, check if the publisher username is valid on GitHub (we can't verify this easily without an API call, 
-    // so we should be careful. For now, let's ONLY use the repo owner if available, otherwise we might link to a 404).
-    // If we rely on pkg.publisher.username, it often doesn't match GitHub.
-
-    // If we have a publisher but no repo match, we might want to try it, but it's risky.
-    // Let's stick to the repo owner for the "GitHub Profile" link to be safe.
-
-    const [avatarError, setAvatarError] = useState(false);
-    const [graphError, setGraphError] = useState(false);
-
-    const avatarUrl = (githubUsername && !avatarError)
-        ? `https://github.com/${githubUsername}.png`
-        : `https://ui-avatars.com/api/?name=${pkg.publisher?.username || pkg.author?.name || 'User'}&background=random&color=fff`;
-
-    const cleanRepoUrl = (url: string) => {
-        if (!url) return undefined;
-        return url
-            .replace(/^git\+/, '')
-            .replace(/^git:\/\//, 'https://')
-            .replace(/\.git$/, '');
-    };
-
-    const githubProfileUrl = githubUsername
-        ? `https://github.com/${githubUsername}`
-        : (pkg.links.repository ? cleanRepoUrl(pkg.links.repository) : undefined);
-
-    // Calculate "Seniority" based on detail scores, as final score can be a search relevance score > 1
-    // Popularity is a good proxy for impact. Quality is a good proxy for seniority.
-    const { popularity = 0, quality = 0 } = score.detail;
-
-    let impactLevel = 'Engineer';
-    let impactColor = 'text-slate-400';
-    let showTopTalent = false;
-
-    if (quality > 0.8 && popularity > 0.1) {
-        impactLevel = 'Senior Engineer';
-        impactColor = 'text-blue-400';
-    }
-    if (quality > 0.9 && popularity > 0.3) {
-        impactLevel = 'Senior Architect';
-        impactColor = 'text-emerald-400';
-        showTopTalent = true;
-    }
-
-    // Only show graph if we have a valid-looking GitHub username (from repo or explicitly verified)
-    // If we fell back to NPM username, it's risky.
-    const hasVerifiedGithub = !!pkg.links.repository?.includes('github.com');
+    const {
+        githubUsername,
+        avatarUrl,
+        githubProfileUrl,
+        impactLevel,
+        impactColor,
+        showTopTalent,
+        hasVerifiedGithub,
+        setAvatarError,
+        graphError,
+        setGraphError
+    } = useDeveloperProfile(result);
 
     return (
         <motion.div
