@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Users, LogOut, Plus, Clock, Trash2, Shield, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { InviteUserSearch } from './InviteUserSearch';
+import { PendingInviteCard } from './PendingInviteCard';
 import type { GithubUser } from '../lib/github-api';
 
 interface Team {
@@ -13,7 +14,8 @@ interface Team {
 
 interface Invitation {
     id: string;
-    email: string;
+    email: string | null;
+    github_username: string | null;
     status: 'pending' | 'accepted' | 'declined';
     team_id: string;
     teams?: { name: string };
@@ -33,6 +35,7 @@ export function TeamSettings() {
 
     const [teamName, setTeamName] = useState('');
     const [selectedGithubUser, setSelectedGithubUser] = useState<GithubUser | null>(null);
+    const [lastInvitedUser, setLastInvitedUser] = useState<GithubUser | null>(null);
 
     const [members, setMembers] = useState<Profile[]>([]);
     const [sentInvites, setSentInvites] = useState<Invitation[]>([]);
@@ -154,6 +157,7 @@ export function TeamSettings() {
         setActionLoading(true);
         setError(null);
         setSuccessMsg(null);
+        setLastInvitedUser(null);
 
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -177,8 +181,8 @@ export function TeamSettings() {
 
             if (error) throw error;
 
+            setLastInvitedUser(selectedGithubUser);
             setSelectedGithubUser(null);
-            setSuccessMsg(`Invitation sent to @${selectedGithubUser.login}`);
             fetchSentInvites(team.id);
         } catch (err: any) {
             setError(err.message);
@@ -270,7 +274,26 @@ export function TeamSettings() {
                     {error}
                 </div>
             )}
-            {successMsg && (
+
+            {lastInvitedUser && (
+                <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="bg-emerald-500/20 p-2 rounded-full">
+                        <img
+                            src={lastInvitedUser.avatar_url}
+                            alt={lastInvitedUser.login}
+                            className="w-8 h-8 rounded-full"
+                        />
+                    </div>
+                    <div>
+                        <div className="text-emerald-400 font-medium">Invitation sent!</div>
+                        <div className="text-emerald-500/70 text-sm">
+                            Waiting for <span className="font-semibold">@{lastInvitedUser.login}</span> to accept.
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {successMsg && !lastInvitedUser && (
                 <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400">
                     {successMsg}
                 </div>
@@ -361,9 +384,12 @@ export function TeamSettings() {
                                 </h3>
                                 <div className="space-y-3">
                                     {sentInvites.map(invite => (
-                                        <div key={invite.id} className="bg-slate-800/30 p-3 rounded-lg border border-slate-800/50 text-sm">
-                                            <div className="text-slate-300 font-medium truncate" title={invite.email}>{invite.email}</div>
-                                            <div className="text-xs text-slate-500 mt-1">Waiting for response...</div>
+                                        <div key={invite.id} className="bg-slate-800/30 p-3 rounded-lg border border-slate-800/50">
+                                            <PendingInviteCard
+                                                email={invite.email}
+                                                githubUsername={invite.github_username}
+                                            />
+                                            <div className="text-xs text-slate-500 mt-2 pl-11">Waiting for response...</div>
                                         </div>
                                     ))}
                                 </div>
