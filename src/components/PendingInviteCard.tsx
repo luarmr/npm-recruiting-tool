@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getGithubUser, type GithubUser } from '../lib/github-api';
-import { Loader2, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
 
 interface PendingInviteCardProps {
     email?: string | null;
