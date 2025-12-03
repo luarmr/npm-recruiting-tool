@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { PackageList } from './PackageList';
 import { type NpmSearchResult } from '../types';
-import { Loader2, Heart } from 'lucide-react';
+import { Loader2, Heart, Plus, X, Search } from 'lucide-react';
+import { getGithubUser } from '../lib/github-api';
 import { Link } from 'react-router-dom';
 // import { Layout } from './Layout';
 
@@ -11,6 +12,9 @@ export function SavedCandidates() {
     const [savedProfiles, setSavedProfiles] = useState<NpmSearchResult[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedStatus, setSelectedStatus] = useState<string>('all');
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newCandidateUsername, setNewCandidateUsername] = useState('');
+    const [addLoading, setAddLoading] = useState(false);
 
     useEffect(() => {
         fetchSavedCandidates();
@@ -69,6 +73,63 @@ export function SavedCandidates() {
         }
     };
 
+    const handleAddCandidate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newCandidateUsername.trim()) return;
+
+        setAddLoading(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Please sign in to add candidates');
+                return;
+            }
+
+            // 1. Fetch GitHub User
+            const githubUser = await getGithubUser(newCandidateUsername);
+            if (!githubUser) {
+                alert('GitHub user not found');
+                return;
+            }
+
+            // 2. Insert into DB
+            const { error } = await supabase
+                .from('saved_candidates')
+                .insert({
+                    user_id: user.id,
+                    package_name: `github:${githubUser.login}`, // distinct from npm packages
+                    package_version: '0.0.0',
+                    description: githubUser.bio || 'Manual GitHub Entry',
+                    keywords: ['github-profile'],
+                    date: new Date().toISOString(),
+                    npm_link: '',
+                    repository_link: githubUser.html_url,
+                    homepage_link: githubUser.blog || '',
+                    publisher_username: githubUser.login,
+                    publisher_email: githubUser.email || '',
+                    score_final: 0,
+                    score_quality: 0,
+                    score_popularity: 0,
+                    score_maintenance: 0,
+                    github_user_data: githubUser,
+                    status: 'new'
+                });
+
+            if (error) throw error;
+
+            // 3. Cleanup & Refresh
+            setNewCandidateUsername('');
+            setIsAddModalOpen(false);
+            fetchSavedCandidates();
+
+        } catch (error) {
+            console.error('Error adding candidate:', error);
+            alert('Failed to add candidate. They might already be in your list.');
+        } finally {
+            setAddLoading(false);
+        }
+    };
+
     const filteredProfiles = selectedStatus === 'all'
         ? savedProfiles
         : savedProfiles.filter(profile => (profile.status || 'new') === selectedStatus);
@@ -102,6 +163,13 @@ export function SavedCandidates() {
                     <h2 className="text-2xl font-bold text-white">Saved Candidates</h2>
                     <p className="text-slate-400">Your shortlisted developers</p>
                 </div>
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="ml-auto flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors"
+                >
+                    <Plus className="w-4 h-4" />
+                    Add Candidate
+                </button>
             </div>
 
             <Link
@@ -139,6 +207,44 @@ export function SavedCandidates() {
                 </div>
             ) : (
                 <PackageList results={filteredProfiles} title="" viewMode="grid" />
+            )}
+
+            {/* Add Candidate Modal */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-white">Add by GitHub Username</h3>
+                            <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-white">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleAddCandidate} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-1">GitHub Username</label>
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                    <input
+                                        type="text"
+                                        value={newCandidateUsername}
+                                        onChange={(e) => setNewCandidateUsername(e.target.value)}
+                                        placeholder="e.g. torvalds"
+                                        className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        autoFocus
+                                    />
+                                </div>
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={addLoading || !newCandidateUsername.trim()}
+                                className="w-full py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                {addLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                Add Candidate
+                            </button>
+                        </form>
+                    </div>
+                </div>
             )}
         </div>
     );
