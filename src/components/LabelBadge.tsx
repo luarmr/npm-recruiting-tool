@@ -1,4 +1,4 @@
-import { Label } from "../types";
+import type { Label } from "../types";
 import { X } from "lucide-react";
 
 interface LabelBadgeProps {

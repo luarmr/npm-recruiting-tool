@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Label } from '../types';
-import { useAuthUI } from '../context/AuthUIContext';
+import type { Label } from '../types'; // Fix: type-only import
+import { useUser } from './useUser';
 
 export function useLabels(teamId?: string | null) {
     const [labels, setLabels] = useState<Label[]>([]);
     const [loading, setLoading] = useState(false);
-    const { user } = useAuthUI();
+    const { user } = useUser(); // Fix: use useUser hook
 
     useEffect(() => {
         if (!user) {

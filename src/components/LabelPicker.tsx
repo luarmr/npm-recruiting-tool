@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Plus, Check, Tag } from "lucide-react";
-import { Label } from "../types";
+import type { Label } from "../types";
 import { useLabels } from "../hooks/useLabels";
-import { useAuthUI } from "../context/AuthUIContext";
+import { useUser } from "../hooks/useUser";
 
 interface LabelPickerProps {
     currentLabels: Label[];
@@ -35,7 +35,7 @@ export function LabelPicker({
     const [searchTerm, setSearchTerm] = useState("");
     const dropdownRef = useRef<HTMLDivElement>(null);
     const { labels, createLabel, refreshLabels } = useLabels(teamId);
-    const { user } = useAuthUI();
+    const { user } = useUser();
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {

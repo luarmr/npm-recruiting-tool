@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { CandidateResult, Status, Label } from '../types';
 import { ExternalLink, Github, Trophy, TrendingUp, ShieldCheck, Code2, Heart, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -21,7 +21,7 @@ interface DeveloperCardProps {
     onLabelUpdate?: (candidateId: number, newLabels: Label[]) => void;
 }
 
-export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRemove, teamId, onStatusChange, onNotesClick, onLabelUpdate }: DeveloperCardProps) {
+export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRemove, teamId, onStatusChange, onNotesClick: _onNotesClick, onLabelUpdate }: DeveloperCardProps) {
     const { assignLabel, removeLabel } = useLabels(teamId);
 
     const handleAssignLabel = async (label: Label) => {
@@ -175,8 +175,8 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
                         onClick={toggleSave}
                         disabled={isSaving}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all z-10 ${isSaved
-                                ? 'bg-pink-500/10 text-pink-500 border border-pink-500/20'
-                                : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-white hover:border-slate-600'
+                            ? 'bg-pink-500/10 text-pink-500 border border-pink-500/20'
+                            : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-white hover:border-slate-600'
                             }`}
                     >
                         <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />

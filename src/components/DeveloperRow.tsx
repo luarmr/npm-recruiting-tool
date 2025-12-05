@@ -8,7 +8,7 @@ import { useDeveloperProfile } from '../hooks/useDeveloperProfile';
 import type { ColumnId } from '../hooks/useColumnPreferences';
 import { LabelBadge } from './LabelBadge';
 import { LabelPicker } from './LabelPicker';
-import { useAuthUI } from '../context/AuthUIContext';
+import { useUser } from '../hooks/useUser';
 import { useLabels } from '../hooks/useLabels';
 
 interface DeveloperRowProps {
@@ -24,11 +24,11 @@ interface DeveloperRowProps {
     onLabelUpdate?: (candidateId: number, newLabels: Label[]) => void;
 }
 
-export function DeveloperRow({ candidate, index, isSaved = false, onSave, onRemove, teamId, visibleColumns, onStatusChange, onNotesClick, onLabelUpdate }: DeveloperRowProps) {
+export function DeveloperRow({ candidate, index, isSaved = false, onSave, onRemove, teamId, visibleColumns, onStatusChange, onNotesClick: _onNotesClick, onLabelUpdate }: DeveloperRowProps) {
     const { package: pkg, score } = candidate;
     const [isSaving, setIsSaving] = useState(false);
     const navigate = useNavigate();
-    const { user } = useAuthUI();
+    const { user } = useUser();
     const { assignLabel, removeLabel } = useLabels(null);
 
     const handleAssignLabel = async (label: Label) => {
