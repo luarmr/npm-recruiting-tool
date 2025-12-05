@@ -393,115 +393,115 @@ export function CandidateDetail() {
                     </div>
                 </div>
 
-                {/* GitHub Contribution Graph */}
-                {!graphError && (candidate.github_user_data?.login || candidate.publisher_username) && (
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
-                        <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5 text-indigo-400" />
-                            Contribution Activity
-                        </h3>
-                        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/30 overflow-hidden">
-                            <img
-                                src={`https://ghchart.rshah.org/4f46e5/${candidate.github_user_data?.login || candidate.publisher_username}`}
-                                alt="Contribution Graph"
-                                className="w-full h-auto opacity-80 hover:opacity-100 transition-opacity"
-                                onError={() => setGraphError(true)}
-                            />
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Right Column: Status & Notes */}
-            <div className="space-y-6">
-                {/* Status Card */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Outreach Status</h3>
-
-                    <div className="mb-6">
-                        <select
-                            value={candidate.status || 'new'}
-                            onChange={(e) => handleStatusChange(e.target.value)}
-                            className={`w-full appearance-none px-4 py-3 rounded-xl border font-medium outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all ${statusColors[candidate.status || 'new']}`}
-                        >
-                            <option value="new">New Candidate</option>
-                            <option value="contacted">Contacted</option>
-                            <option value="replied">Replied</option>
-                            <option value="interviewing">Interviewing</option>
-                            <option value="hired">Hired</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
-                    </div>
-
-                    <div className="mb-6">
-                        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                            Labels
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                            {candidate.labels?.map(label => (
-                                <LabelBadge
-                                    key={label.id}
-                                    label={label}
-                                    size="sm"
-                                    onRemove={() => handleUnassignLabel(label)}
+                {/* Right Column: Status & Notes */}
+                <div className="space-y-6">
+                    {/* GitHub Contribution Graph */}
+                    {!graphError && (candidate.github_user_data?.login || candidate.publisher_username) && (
+                        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
+                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                                <TrendingUp className="w-5 h-5 text-indigo-400" />
+                                Contribution Activity
+                            </h3>
+                            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/30 overflow-hidden">
+                                <img
+                                    src={`https://ghchart.rshah.org/4f46e5/${candidate.github_user_data?.login || candidate.publisher_username}`}
+                                    alt="Contribution Graph"
+                                    className="w-full h-auto opacity-80 hover:opacity-100 transition-opacity"
+                                    onError={() => setGraphError(true)}
                                 />
-                            ))}
-                            <LabelPicker
-                                currentLabels={candidate.labels || []}
-                                onAssign={handleAssignLabel}
-                                onUnassign={handleUnassignLabel}
-                                teamId={candidate.team_id}
-                                align="left"
-                            />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Status Card */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Outreach Status</h3>
+
+                        <div className="mb-6">
+                            <select
+                                value={candidate.status || 'new'}
+                                onChange={(e) => handleStatusChange(e.target.value)}
+                                className={`w-full appearance-none px-4 py-3 rounded-xl border font-medium outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all ${statusColors[candidate.status || 'new']}`}
+                            >
+                                <option value="new">New Candidate</option>
+                                <option value="contacted">Contacted</option>
+                                <option value="replied">Replied</option>
+                                <option value="interviewing">Interviewing</option>
+                                <option value="hired">Hired</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+
+                        <div className="mb-6">
+                            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                Labels
+                            </h3>
+                            <div className="flex flex-wrap gap-2">
+                                {candidate.labels?.map(label => (
+                                    <LabelBadge
+                                        key={label.id}
+                                        label={label}
+                                        size="sm"
+                                        onRemove={() => handleUnassignLabel(label)}
+                                    />
+                                ))}
+                                <LabelPicker
+                                    currentLabels={candidate.labels || []}
+                                    onAssign={handleAssignLabel}
+                                    onUnassign={handleUnassignLabel}
+                                    teamId={candidate.team_id}
+                                    align="left"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-800 text-xs text-slate-500 flex justify-between">
+                            <span>Saved by {candidate.profiles?.email}</span>
+                            <span>{new Date(candidate.date).toLocaleDateString()}</span>
                         </div>
                     </div>
 
-                    <div className="pt-4 border-t border-slate-800 text-xs text-slate-500 flex justify-between">
-                        <span>Saved by {candidate.profiles?.email}</span>
-                        <span>{new Date(candidate.date).toLocaleDateString()}</span>
-                    </div>
-                </div>
+                    {/* Notes Card */}
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col h-[500px]">
+                        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <MessageSquare className="w-4 h-4" /> Team Notes
+                        </h3>
 
-                {/* Notes Card */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col h-[500px]">
-                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4" /> Team Notes
-                    </h3>
-
-                    <div className="flex-grow overflow-y-auto space-y-4 mb-4 pr-2 custom-scrollbar">
-                        {notes.length === 0 ? (
-                            <div className="text-center py-10 text-slate-600 italic text-sm">
-                                No notes yet. Start the discussion!
-                            </div>
-                        ) : (
-                            notes.map(note => (
-                                <div key={note.id} className="bg-slate-800/50 rounded-xl p-3 border border-slate-800">
-                                    <div className="flex justify-between items-start mb-1">
-                                        <span className="text-xs font-bold text-indigo-400">{note.profiles?.email}</span>
-                                        <span className="text-[10px] text-slate-600">{new Date(note.created_at).toLocaleDateString()}</span>
-                                    </div>
-                                    <p className="text-slate-300 text-sm whitespace-pre-wrap">{note.content}</p>
+                        <div className="flex-grow overflow-y-auto space-y-4 mb-4 pr-2 custom-scrollbar">
+                            {notes.length === 0 ? (
+                                <div className="text-center py-10 text-slate-600 italic text-sm">
+                                    No notes yet. Start the discussion!
                                 </div>
-                            ))
-                        )}
-                    </div>
+                            ) : (
+                                notes.map(note => (
+                                    <div key={note.id} className="bg-slate-800/50 rounded-xl p-3 border border-slate-800">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <span className="text-xs font-bold text-indigo-400">{note.profiles?.email}</span>
+                                            <span className="text-[10px] text-slate-600">{new Date(note.created_at).toLocaleDateString()}</span>
+                                        </div>
+                                        <p className="text-slate-300 text-sm whitespace-pre-wrap">{note.content}</p>
+                                    </div>
+                                ))
+                            )}
+                        </div>
 
-                    <form onSubmit={handleAddNote} className="relative">
-                        <input
-                            type="text"
-                            value={newNote}
-                            onChange={(e) => setNewNote(e.target.value)}
-                            placeholder="Add a note..."
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-12 py-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                        />
-                        <button
-                            type="submit"
-                            disabled={noteLoading || !newNote.trim()}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:hover:bg-indigo-500 transition-colors"
-                        >
-                            <Send className="w-4 h-4" />
-                        </button>
-                    </form>
+                        <form onSubmit={handleAddNote} className="relative">
+                            <input
+                                type="text"
+                                value={newNote}
+                                onChange={(e) => setNewNote(e.target.value)}
+                                placeholder="Add a note..."
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-12 py-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                            />
+                            <button
+                                type="submit"
+                                disabled={noteLoading || !newNote.trim()}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:hover:bg-indigo-500 transition-colors"
+                            >
+                                <Send className="w-4 h-4" />
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
