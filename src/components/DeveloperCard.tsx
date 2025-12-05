@@ -167,8 +167,9 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
 
                 {/* Labels in Header - Absolute Top Left */}
                 {isSaved && (
-                    <div className="absolute top-4 left-4 max-w-[65%] flex flex-wrap gap-1.5 z-20">
-                        {candidate.labels?.map(label => (
+                    <div className="absolute top-4 left-4 max-w-[60%] flex flex-wrap gap-1.5 z-20">
+                        {/* Show only first 2 labels */}
+                        {candidate.labels?.slice(0, 2).map(label => (
                             <LabelBadge
                                 key={label.id}
                                 label={label}
@@ -176,12 +177,21 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
                                 onRemove={onLabelUpdate ? () => handleUnassignLabel(label) : undefined}
                             />
                         ))}
+
+                        {/* Overflow Badge */}
+                        {(candidate.labels?.length || 0) > 2 && (
+                            <span className="text-[10px] items-center justify-center flex font-medium px-1.5 py-0.5 rounded-full bg-slate-800/80 text-slate-300 border border-slate-700/50 backdrop-blur-sm h-5">
+                                +{(candidate.labels?.length || 0) - 2}
+                            </span>
+                        )}
+
                         <LabelPicker
                             currentLabels={candidate.labels || []}
                             onAssign={handleAssignLabel}
                             onUnassign={handleUnassignLabel}
                             teamId={teamId}
                             align="left"
+                        // Use a smaller/icon-only trigger if needed, but standard is fine
                         />
                     </div>
                 )}
