@@ -305,7 +305,10 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
                         <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
                             <Trophy className="w-3 h-3" /> Labels
                         </h4>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 items-center">
+                            {(!candidate.labels || candidate.labels.length === 0) && (
+                                <span className="text-slate-600 text-xs py-1">-</span>
+                            )}
                             {candidate.labels?.map(label => (
                                 <LabelBadge
                                     key={label.id}
