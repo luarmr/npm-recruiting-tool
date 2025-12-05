@@ -21,10 +21,25 @@ export function SavedCandidates() {
     const [addLoading, setAddLoading] = useState(false);
     const { viewMode, setViewMode } = useViewMode();
     const { visibleColumns, toggleColumn } = useColumnPreferences();
-    const { labels: availableLabels } = useLabels(null); // Assuming personal scope for now, need teamId context if available
+    const [teamId, setTeamId] = useState<string | null>(null);
+    const { labels: availableLabels } = useLabels(teamId);
 
     useEffect(() => {
-        fetchSavedCandidates();
+        const init = async () => {
+            // 1. Get User's Team
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: teamData } = await supabase
+                    .from('team_members')
+                    .select('team_id')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (teamData) setTeamId(teamData.team_id);
+            }
+            fetchSavedCandidates();
+        };
+        init();
     }, []);
 
     const fetchSavedCandidates = async () => {
