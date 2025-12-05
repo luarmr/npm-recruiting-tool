@@ -1,22 +1,52 @@
 import { useState, useEffect } from 'react';
-import type { CandidateResult } from '../types';
+import type { CandidateResult, Status, Label } from '../types';
 import { ExternalLink, Github, Trophy, TrendingUp, ShieldCheck, Code2, Heart, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDeveloperProfile } from '../hooks/useDeveloperProfile';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { LabelBadge } from './LabelBadge';
+import { LabelPicker } from './LabelPicker';
+import { useLabels } from '../hooks/useLabels';
 
 interface DeveloperCardProps {
-    result: CandidateResult;
+    candidate: CandidateResult;
     index: number;
-    initialIsSaved: boolean;
-    onToggleSave: (packageName: string, isSaved: boolean) => void;
-    teamId: string | null;
-    onStatusChange?: (id: number, newStatus: string) => void;
+    isSaved?: boolean;
+    onSave?: (candidate: CandidateResult) => void;
+    onRemove?: (id: number) => void;
+    teamId?: string | null;
+    onStatusChange?: (id: number, status: Status) => void;
+    onNotesClick?: (candidateId: number) => void;
+    onLabelUpdate?: (candidateId: number, newLabels: Label[]) => void;
 }
 
-export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, teamId, onStatusChange }: DeveloperCardProps) {
-    const { package: pkg, score } = result;
+export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRemove, teamId, onStatusChange, onNotesClick, onLabelUpdate }: DeveloperCardProps) {
+    const { assignLabel, removeLabel } = useLabels(teamId);
+
+    const handleAssignLabel = async (label: Label) => {
+        if (!candidate.id || !onLabelUpdate) return;
+        try {
+            await assignLabel(candidate.id, label.id);
+            const currentLabels = candidate.labels || [];
+            onLabelUpdate(candidate.id, [...currentLabels, label]);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleUnassignLabel = async (label: Label) => {
+        if (!candidate.id || !onLabelUpdate) return;
+        try {
+            await removeLabel(candidate.id, label.id);
+            const currentLabels = candidate.labels || [];
+            onLabelUpdate(candidate.id, currentLabels.filter(l => l.id !== label.id));
+        } catch (e) {
+            console.error('Error unassigning label:', e);
+        }
+    };
+
+    const { package: pkg, score } = candidate;
     const {
         githubUsername,
         avatarUrl,
@@ -28,7 +58,7 @@ export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, tea
         setAvatarError,
         graphError,
         setGraphError
-    } = useDeveloperProfile(result);
+    } = useDeveloperProfile(candidate);
 
     const statusColors: Record<string, string> = {
         new: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
@@ -39,15 +69,11 @@ export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, tea
         rejected: 'bg-red-500/10 text-red-400 border-red-500/20',
     };
 
-    const [isSaved, setIsSaved] = useState(initialIsSaved);
     const [isSaving, setIsSaving] = useState(false);
-
-    useEffect(() => {
-        setIsSaved(initialIsSaved);
-    }, [initialIsSaved]);
+    const navigate = useNavigate();
 
     const toggleSave = async (e: React.MouseEvent) => {
-        e.preventDefault(); // Prevent navigation
+        e.preventDefault();
         e.stopPropagation();
 
         const { data: { user } } = await supabase.auth.getUser();
@@ -59,35 +85,50 @@ export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, tea
         setIsSaving(true);
         try {
             if (isSaved) {
-                await supabase
-                    .from('saved_candidates')
-                    .delete()
-                    .eq('package_name', pkg.name);
-
-                onToggleSave(pkg.name, false);
+                if (onRemove && candidate.id) {
+                    await onRemove(candidate.id);
+                } else {
+                    // Fallback if no specific remove handler but we're in a "toggle" context (Search Page)
+                    // If we are on Search Page, isSaved refers to whether it is in DB.
+                    // But strictly speaking, onSearchPage, we might not have candidate.id if it's not saved yet...
+                    // Wait, if isSaved is true, candidate.id might be missing if it came from Search Results?
+                    // Actually, if it is saved, we should have an ID if we fetched it properly.
+                    // Let's stick to the prop callbacks.
+                    if (teamId) {
+                        await supabase.from('saved_candidates').delete().eq('package_name', pkg.name).eq('team_id', teamId);
+                    } else {
+                        await supabase.from('saved_candidates').delete().eq('package_name', pkg.name).eq('user_id', user.id);
+                    }
+                    // We need to notify parent to update state
+                    // onSave(candidate) is usually "add", maybe onRemove is just for "remove"
+                }
             } else {
-                await supabase
-                    .from('saved_candidates')
-                    .insert({
-                        user_id: user.id,
-                        team_id: teamId,
-                        package_name: pkg.name,
-                        package_version: pkg.version,
-                        description: pkg.description,
-                        keywords: pkg.keywords,
-                        date: pkg.date,
-                        npm_link: pkg.links.npm,
-                        repository_link: pkg.links.repository,
-                        homepage_link: pkg.links.homepage,
-                        publisher_username: pkg.publisher?.username,
-                        publisher_email: pkg.publisher?.email,
-                        score_final: score.final,
-                        score_quality: score.detail.quality,
-                        score_popularity: score.detail.popularity,
-                        score_maintenance: score.detail.maintenance,
-                        github_user_data: result.githubUser
-                    });
-                onToggleSave(pkg.name, true);
+                if (onSave) {
+                    await onSave(candidate);
+                } else {
+                    // Fallback insert
+                    await supabase
+                        .from('saved_candidates')
+                        .insert({
+                            user_id: user.id,
+                            team_id: teamId,
+                            package_name: pkg.name,
+                            package_version: pkg.version,
+                            description: pkg.description,
+                            keywords: pkg.keywords,
+                            date: pkg.date,
+                            npm_link: pkg.links.npm,
+                            repository_link: pkg.links.repository,
+                            homepage_link: pkg.links.homepage,
+                            publisher_username: pkg.publisher?.username,
+                            publisher_email: pkg.publisher?.email,
+                            score_final: score.final,
+                            score_quality: score.detail.quality,
+                            score_popularity: score.detail.popularity,
+                            score_maintenance: score.detail.maintenance,
+                            github_user_data: candidate.githubUser
+                        });
+                }
             }
         } catch (error) {
             console.error('Error toggling save:', error);
@@ -96,8 +137,30 @@ export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, tea
         }
     };
 
-    const CardContent = () => (
-        <>
+    const handleCardClick = () => {
+        if (candidate.id) {
+            navigate(`/candidate/${candidate.id}`);
+        }
+    };
+
+    const containerClasses = `group relative bg-slate-900 border border-slate-800 hover:border-indigo-500/30 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 flex flex-col h-full text-left ${candidate.id ? 'cursor-pointer' : ''}`;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+            className={containerClasses}
+            onClick={handleCardClick}
+            role={candidate.id ? "button" : undefined}
+            tabIndex={candidate.id ? 0 : undefined}
+            onKeyDown={(e) => {
+                if (candidate.id && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    handleCardClick();
+                }
+            }}
+        >
             {/* Header Background */}
             <div className="h-24 bg-gradient-to-r from-slate-800 to-slate-900 relative overflow-hidden">
                 <div className="absolute inset-0 bg-grid-white/[0.02] bg-[length:16px_16px]" />
@@ -112,8 +175,8 @@ export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, tea
                         onClick={toggleSave}
                         disabled={isSaving}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all z-10 ${isSaved
-                            ? 'bg-pink-500/10 text-pink-500 border border-pink-500/20'
-                            : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-white hover:border-slate-600'
+                                ? 'bg-pink-500/10 text-pink-500 border border-pink-500/20'
+                                : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-white hover:border-slate-600'
                             }`}
                     >
                         <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
@@ -158,14 +221,14 @@ export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, tea
                                 <ExternalLink className="w-4 h-4" />
                             </a>
                         )}
-                        {result.package.links.npm && (
+                        {candidate.package.links.npm && (
                             <a
-                                href={result.package.links.npm}
+                                href={candidate.package.links.npm}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
                                 className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors border border-slate-700/50 z-10"
-                                title={result.source === 'pypi' ? "View on PyPI" : "View on NPM"}
+                                title={candidate.source === 'pypi' ? "View on PyPI" : "View on NPM"}
                             >
                                 <ExternalLink className="w-4 h-4" />
                             </a>
@@ -175,28 +238,55 @@ export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, tea
 
                 <div className="mb-6">
                     <div className="flex items-center gap-2 mb-2">
-                        {result.source === 'pypi' ? (
+                        {candidate.source === 'pypi' ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
                                 <img src="https://pypi.org/static/images/logo-small.2a411bc6.svg" className="w-3 h-3" alt="PyPI" />
                                 PyPI
                             </span>
                         ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">
-                                <svg viewBox="0 0 780 250" className="w-3 h-3 fill-current"><path d="M240,250h100v-50h100V0H240V250z M340,50h50v100h-50V50z M480,0v200h100V50h50v150h50V50h50v150h50V0H480z M0,200h100V50h50v150h50V0H0V200z"></path></svg>
+                                <svg viewBox="0 0 780 250" className="w-3 h-3 fill-current"><path d="M240,250h100v-50h100V0H240V250z M340,50h50v100h-50V50z M480,0v200h100V50h50v150h50V50h50v150h50V0H480z M0,200h100V50h50v150h50V0V200z"></path></svg>
                                 NPM
                             </span>
                         )}
                         <h3 className="text-xl font-bold text-white truncate flex-1">
-                            {result.package.publisher?.username || 'Unknown'}
+                            {candidate.package.publisher?.username || 'Unknown'}
                         </h3>
                     </div>
 
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-800">
-                        {result.status && onStatusChange && result.id ? (
+                    {isSaved && (
+                        <div className="px-6 pb-2 flex flex-wrap gap-2 items-center -mx-6 mb-2">
+                            {/* Added -mx-6 to counteract padding, just small style tweak */}
+                            <div className="px-6 flex flex-wrap gap-2">
+                                {candidate.labels?.map(label => (
+                                    <LabelBadge
+                                        key={label.id}
+                                        label={label}
+                                        size="sm"
+                                        onRemove={onLabelUpdate ? () => handleUnassignLabel(label) : undefined}
+                                    />
+                                ))}
+                                <LabelPicker
+                                    currentLabels={candidate.labels || []}
+                                    onAssign={handleAssignLabel}
+                                    onUnassign={handleUnassignLabel}
+                                    teamId={teamId}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-700/50 mt-auto">
+                        {/* Removed p-6 padding wrapper to fit better, using margin/padding utilities directly or keeping structure */}
+                        {/* Actually, let's keep the structure but ensure it flows. */}
+                    </div>
+                    {/* Re-adding the date/status section properly */}
+                    <div className="flex items-center justify-between mb-2">
+                        {candidate.status && onStatusChange && candidate.id ? (
                             <select
-                                value={result.status}
-                                onChange={(e) => onStatusChange(result.id!, e.target.value)}
-                                className={`text-xs font-medium px-2 py-1 rounded-lg border outline-none cursor-pointer ${statusColors[result.status]}`}
+                                value={candidate.status}
+                                onChange={(e) => onStatusChange(candidate.id!, e.target.value as Status)}
+                                className={`text-xs font-medium px-2 py-1 rounded-lg border outline-none cursor-pointer ${statusColors[candidate.status]}`}
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <option value="new">New</option>
@@ -208,10 +298,11 @@ export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, tea
                             </select>
                         ) : (
                             <div className="text-xs text-slate-500">
-                                {result.package.date ? new Date(result.package.date).toLocaleDateString() : 'No date'}
+                                {pkg.date ? new Date(pkg.date).toLocaleDateString() : 'No date'}
                             </div>
                         )}
                     </div>
+
 
                     <div className={`text-sm font-medium ${impactColor} flex items-center gap-2 mb-2`}>
                         {impactLevel}
@@ -219,13 +310,13 @@ export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, tea
 
                     <div className="flex items-center gap-4 mb-4 text-xs text-slate-400">
                         <div className="flex items-center gap-1" title="Followers">
-                            <span className="font-semibold text-slate-200">{result.githubUser?.followers ?? '-'}</span> Followers
+                            <span className="font-semibold text-slate-200">{candidate.githubUser?.followers ?? '-'}</span> Followers
                         </div>
                         <div className="flex items-center gap-1" title="Following">
-                            <span className="font-semibold text-slate-200">{result.githubUser?.following ?? '-'}</span> Following
+                            <span className="font-semibold text-slate-200">{candidate.githubUser?.following ?? '-'}</span> Following
                         </div>
                         <div className="flex items-center gap-1" title="Public Repositories">
-                            <span className="font-semibold text-slate-200">{result.githubUser?.public_repos ?? '-'}</span> Repos
+                            <span className="font-semibold text-slate-200">{candidate.githubUser?.public_repos ?? '-'}</span> Repos
                         </div>
                     </div>
 
@@ -266,18 +357,10 @@ export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, tea
                 )}
 
                 {/* Saved By Badge */}
-                {result.savedBy && (
+                {candidate.savedBy && (
                     <div className="mb-4 flex items-center gap-2 text-xs text-slate-500 bg-slate-800/30 p-2 rounded-lg border border-slate-800/50">
                         <Users className="w-3 h-3" />
-                        <span>Saved by <span className="text-slate-300">{result.savedBy}</span></span>
-                    </div>
-                )}
-
-                {/* Status Badge */}
-                {result.status && (
-                    <div className="mb-4 flex items-center gap-2 text-xs text-slate-500 bg-slate-800/30 p-2 rounded-lg border border-slate-800/50">
-                        <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                        <span className="uppercase tracking-wider font-bold text-indigo-400">{result.status}</span>
+                        <span>Saved by <span className="text-slate-300">{candidate.savedBy}</span></span>
                     </div>
                 )}
 
@@ -306,37 +389,8 @@ export function DeveloperCard({ result, index, initialIsSaved, onToggleSave, tea
                         </div>
                     </div>
                 </div>
+
             </div>
-        </>
-    );
-
-    const navigate = useNavigate();
-
-    const handleCardClick = () => {
-        if (result.id) {
-            navigate(`/candidate/${result.id}`);
-        }
-    };
-
-    const containerClasses = `group relative bg-slate-900 border border-slate-800 hover:border-indigo-500/30 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 flex flex-col h-full text-left ${result.id ? 'cursor-pointer' : ''}`;
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.05 }}
-            className={containerClasses}
-            onClick={handleCardClick}
-            role={result.id ? "button" : undefined}
-            tabIndex={result.id ? 0 : undefined}
-            onKeyDown={(e) => {
-                if (result.id && (e.key === 'Enter' || e.key === ' ')) {
-                    e.preventDefault();
-                    handleCardClick();
-                }
-            }}
-        >
-            <CardContent />
         </motion.div>
     );
 }

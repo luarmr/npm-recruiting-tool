@@ -53,6 +53,7 @@ export interface CandidateResult {
     status?: 'new' | 'contacted' | 'replied' | 'interviewing' | 'hired' | 'rejected';
     id?: number; // Database ID for saved candidates
     source: 'npm' | 'pypi' | 'github';
+    labels?: Label[];
 }
 
 export interface NpmSearchResponse {
@@ -62,3 +63,11 @@ export interface NpmSearchResponse {
 }
 
 export type SortOption = 'optimal' | 'popularity' | 'maintenance' | 'quality';
+
+export interface Label {
+    id: number;
+    name: string;
+    color: string;
+    team_id?: string;
+    user_id?: string;
+}

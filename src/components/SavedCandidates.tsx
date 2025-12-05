@@ -1,23 +1,26 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { PackageList } from './PackageList';
-import type { CandidateResult } from '../types';
-import { Loader2, Heart, Plus, X, Search, LayoutGrid, List } from 'lucide-react';
+import type { CandidateResult, Label } from '../types';
+import { Loader2, Heart, Plus, X, Search, LayoutGrid, List, Tag } from 'lucide-react';
 import { getGithubUser } from '../lib/github-api';
 import { useViewMode } from '../hooks/useViewMode';
 import { useColumnPreferences } from '../hooks/useColumnPreferences';
 import { ColumnSelector } from './ColumnSelector';
 import { Link } from 'react-router-dom';
+import { useLabels } from '../hooks/useLabels';
 
 export function SavedCandidates() {
     const [savedProfiles, setSavedProfiles] = useState<CandidateResult[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedStatus, setSelectedStatus] = useState<string>('all');
+    const [selectedLabelId, setSelectedLabelId] = useState<number | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newCandidateUsername, setNewCandidateUsername] = useState('');
     const [addLoading, setAddLoading] = useState(false);
     const { viewMode, setViewMode } = useViewMode();
     const { visibleColumns, toggleColumn } = useColumnPreferences();
+    const { labels: availableLabels } = useLabels(null); // Assuming personal scope for now, need teamId context if available
 
     useEffect(() => {
         fetchSavedCandidates();
@@ -28,9 +31,16 @@ export function SavedCandidates() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
+            // Fetch candidates with their labels joined
             const { data, error } = await supabase
                 .from('saved_candidates')
-                .select('*, profiles(email)');
+                .select(`
+                    *,
+                    profiles(email),
+                    saved_candidate_labels (
+                        label: labels (*)
+                    )
+                `);
 
             if (error) throw error;
 
@@ -66,7 +76,9 @@ export function SavedCandidates() {
                 // @ts-ignore
                 savedBy: item.profiles?.email,
                 status: item.status || 'new',
-                source: item.source || 'npm'
+                source: item.source || 'npm',
+                // Map joined labels
+                labels: item.saved_candidate_labels.map((scl: any) => scl.label)
             }));
 
             setSavedProfiles(results);
@@ -156,9 +168,17 @@ export function SavedCandidates() {
         }
     };
 
-    const filteredProfiles = selectedStatus === 'all'
-        ? savedProfiles
-        : savedProfiles.filter(profile => (profile.status || 'new') === selectedStatus);
+    const handleLabelUpdate = (candidateId: number, newLabels: Label[]) => {
+        setSavedProfiles(prev => prev.map(p =>
+            p.id === candidateId ? { ...p, labels: newLabels } : p
+        ));
+    };
+
+    const filteredProfiles = savedProfiles.filter(profile => {
+        const statusMatch = selectedStatus === 'all' || (profile.status || 'new') === selectedStatus;
+        const labelMatch = selectedLabelId === null || (profile.labels && profile.labels.some(l => l.id === selectedLabelId));
+        return statusMatch && labelMatch;
+    });
 
     const statuses = [
         { id: 'all', label: 'All' },
@@ -208,26 +228,62 @@ export function SavedCandidates() {
             </div>
 
             {/* Controls Row */}
-            <div className={`w-full mx-auto mb-8 flex flex-col sm:flex-row sm:flex-wrap gap-4 items-start sm:items-center justify-between transition-all duration-300 ${viewMode === 'grid' ? 'max-w-3xl' : 'w-full px-4'}`}>
-                {/* Status Filter */}
-                <div className="flex flex-wrap gap-2">
-                    {statuses.map(status => (
+            <div className={`w-full mx-auto mb-8 flex flex-col sm:flex-row sm:flex-wrap gap-4 items-start sm:items-center justify-between transition-all duration-300 ${viewMode === 'grid' ? 'max-w-7xl' : 'w-full px-4'}`}>
+                {/* Filters Group */}
+                <div className="flex flex-col gap-4 w-full sm:w-auto">
+                    {/* Status Filter */}
+                    <div className="flex flex-wrap gap-2">
+                        {statuses.map(status => (
+                            <button
+                                key={status.id}
+                                onClick={() => setSelectedStatus(status.id)}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedStatus === status.id
+                                    ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
+                                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                                    }`}
+                            >
+                                {status.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Label Filter */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                            <Tag className="w-3 h-3" /> Labels:
+                        </span>
                         <button
-                            key={status.id}
-                            onClick={() => setSelectedStatus(status.id)}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedStatus === status.id
-                                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
-                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                            onClick={() => setSelectedLabelId(null)}
+                            className={`px-3 py-1 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${selectedLabelId === null
+                                ? 'bg-slate-200 text-slate-900'
+                                : 'bg-slate-800 text-slate-400 hover:text-white'
                                 }`}
                         >
-                            {status.label}
+                            All
                         </button>
-                    ))}
+                        {availableLabels.map(label => (
+                            <button
+                                key={label.id}
+                                onClick={() => setSelectedLabelId(label.id)}
+                                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1 ${selectedLabelId === label.id
+                                        ? 'ring-2 ring-white'
+                                        : 'hover:opacity-80'
+                                    }`}
+                                style={{
+                                    backgroundColor: `${label.color}20`,
+                                    color: label.color,
+                                    border: `1px solid ${label.color}40`
+                                }}
+                            >
+                                {label.name}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {/* View Controls Group */}
-                <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center">
-                    <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700 h-[42px] flex-shrink-0 gap-1">
+                <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center flex-shrink-0">
+                    <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700 h-[42px] gap-1">
                         <button
                             onClick={() => setViewMode('grid')}
                             className={`p-2 rounded-lg transition-all ${viewMode === 'grid'
@@ -262,9 +318,7 @@ export function SavedCandidates() {
                         <Heart className="w-12 h-12 text-slate-600 mx-auto mb-4" />
                         <h3 className="text-xl font-medium text-slate-300 mb-2">No candidates found</h3>
                         <p className="text-slate-500">
-                            {selectedStatus === 'all'
-                                ? "Star candidates from the search results to add them to your list."
-                                : `No candidates with status "${statuses.find(s => s.id === selectedStatus)?.label}".`}
+                            Try adjusting your filters.
                         </p>
                     </div>
                 ) : (
@@ -273,7 +327,14 @@ export function SavedCandidates() {
                         title=""
                         viewMode={viewMode}
                         onStatusChange={handleStatusChange}
+                        onLabelUpdate={handleLabelUpdate}
                         visibleColumns={visibleColumns}
+                        // Passing fetchSavedCandidates as onRemove ensures that if a candidate is removed, 
+                        // the list is refreshed (or we could manage state locally)
+                        // Actually, the optimistic updates in `DeveloperRow/Card` call `onRemove` which `PackageList` expects.
+                        onRemove={(candidate) => {
+                            setSavedProfiles(prev => prev.filter(p => p.id !== candidate.id));
+                        }}
                     />
                 )}
             </div>

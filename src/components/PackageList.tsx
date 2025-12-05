@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { CandidateResult } from '../types';
+import type { CandidateResult, Label } from '../types';
 import { DeveloperCard } from './DeveloperCard';
 import { DeveloperRow } from './DeveloperRow';
 import { supabase } from '../lib/supabase';
@@ -11,9 +11,22 @@ interface PackageListProps {
     viewMode: 'grid' | 'list';
     onStatusChange?: (id: number, newStatus: string) => void;
     visibleColumns?: Set<ColumnId>;
+    onLabelUpdate?: (candidateId: number, newLabels: Label[]) => void;
+    // Optional callbacks if parent wants to control save/remove (like in SavedCandidates)
+    onSave?: (candidate: CandidateResult) => void;
+    onRemove?: (candidate: CandidateResult) => void;
 }
 
-export function PackageList({ results, title, viewMode, onStatusChange, visibleColumns = new Set() }: PackageListProps) {
+export function PackageList({
+    results,
+    title,
+    viewMode,
+    onStatusChange,
+    visibleColumns = new Set(),
+    onLabelUpdate,
+    onSave,
+    onRemove
+}: PackageListProps) {
     const [savedPackageNames, setSavedPackageNames] = useState<Set<string>>(new Set());
     const [teamId, setTeamId] = useState<string | null>(null);
 
@@ -38,10 +51,11 @@ export function PackageList({ results, title, viewMode, onStatusChange, visibleC
         if (teamData) setTeamId(teamData.team_id);
 
         // 2. Get Saved Status (Own + Team)
+        // Only relevant if we are in search mode (no IDs yet or checked against DB)
+        // If we are in SavedCandidates, results already have IDs.
         const packageNames = results.map(r => r.package.name);
         if (packageNames.length === 0) return;
 
-        // We rely on RLS to return both own and team saves
         const { data } = await supabase
             .from('saved_candidates')
             .select('package_name')
@@ -52,15 +66,44 @@ export function PackageList({ results, title, viewMode, onStatusChange, visibleC
         }
     };
 
-    const handleToggleSave = (packageName: string, isSaved: boolean) => {
-        const newSet = new Set(savedPackageNames);
-        if (isSaved) {
-            newSet.add(packageName);
-        } else {
-            newSet.delete(packageName);
+    const internalOnSave = (candidate: CandidateResult) => {
+        setSavedPackageNames(prev => new Set(prev).add(candidate.package.name));
+        onSave?.(candidate);
+    }
+
+    const internalOnRemove = (candidate: CandidateResult) => { // Expect candidate object now
+        // For remove, we might get an ID if it's saved, or just the candidate object
+        // The new DeveloperCard calls onRemove(id) or onRemove(candidate) depending...
+        // Actually DeveloperCard calls onRemove(id) if ID exists.
+        // But DeveloperRow calls onRemove(candidate).
+        // I should standardize.
+        // Let's stick to what DeveloperRow/Card expects.
+        // DeveloperCard expects onRemove?: (id: number) => void;
+        // DeveloperRow expects onRemove?: (candidate: CandidateResult) => void;
+        // This is inconsistent. I should fix the components first or adapt here.
+
+        // Looking at my previous write_to_file for DeveloperCard:
+        // onRemove?: (id: number) => void;
+        // And DeveloperRow:
+        // onRemove?: (candidate: CandidateResult) => void;
+
+        // I will adapt here.
+        setSavedPackageNames(prev => {
+            const next = new Set(prev);
+            next.delete(candidate.package.name);
+            return next;
+        });
+        onRemove?.(candidate);
+    }
+
+    // Adapt for DeveloperCard which sends ID
+    const handleCardRemove = (id: number) => {
+        // Find candidate by ID to remove from local Set
+        const candidate = results.find(r => r.id === id);
+        if (candidate) {
+            internalOnRemove(candidate);
         }
-        setSavedPackageNames(newSet);
-    };
+    }
 
     if (results.length === 0) {
         return null;
@@ -87,12 +130,15 @@ export function PackageList({ results, title, viewMode, onStatusChange, visibleC
                             className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] max-w-md"
                         >
                             <DeveloperCard
-                                result={result}
+                                candidate={result}
                                 index={index}
-                                initialIsSaved={savedPackageNames.has(result.package.name)}
-                                onToggleSave={handleToggleSave}
+                                isSaved={savedPackageNames.has(result.package.name)}
+                                onSave={internalOnSave}
+                                onRemove={handleCardRemove}
                                 teamId={teamId}
                                 onStatusChange={onStatusChange}
+                                onLabelUpdate={onLabelUpdate}
+                                onNotesClick={() => { }} // Placeholder
                             />
                         </div>
                     ))}
@@ -120,13 +166,18 @@ export function PackageList({ results, title, viewMode, onStatusChange, visibleC
                             {results.map((result, index) => (
                                 <DeveloperRow
                                     key={`${result.package.name}-${index}`}
-                                    result={result}
+                                    candidate={result}
                                     index={index}
-                                    initialIsSaved={savedPackageNames.has(result.package.name)}
-                                    onToggleSave={handleToggleSave}
+                                    isSaved={savedPackageNames.has(result.package.name)}
+                                    // DeveloperRow expects onSave: (candidate) => void
+                                    onSave={internalOnSave}
+                                    // DeveloperRow expects onRemove: (candidate) => void
+                                    onRemove={internalOnRemove}
                                     teamId={teamId}
                                     visibleColumns={visibleColumns}
                                     onStatusChange={onStatusChange}
+                                    onLabelUpdate={onLabelUpdate}
+                                    onNotesClick={() => { }} // Placeholder
                                 />
                             ))}
                         </tbody>

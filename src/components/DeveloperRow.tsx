@@ -1,43 +1,68 @@
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MapPin, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import type { CandidateResult } from '../types';
+import type { CandidateResult, Label } from '../types';
 import { useDeveloperProfile } from '../hooks/useDeveloperProfile';
 import type { ColumnId } from '../hooks/useColumnPreferences';
+import { LabelBadge } from './LabelBadge';
+import { LabelPicker } from './LabelPicker';
+import { useAuthUI } from '../context/AuthUIContext';
+import { useLabels } from '../hooks/useLabels';
 
 interface DeveloperRowProps {
-    result: CandidateResult;
+    candidate: CandidateResult;
     index: number;
-    initialIsSaved?: boolean;
-    onToggleSave?: (packageName: string, isSaved: boolean) => void;
+    isSaved?: boolean;
+    onSave?: (candidate: CandidateResult) => void;
+    onRemove?: (candidate: CandidateResult) => void;
     teamId?: string | null;
     visibleColumns: Set<ColumnId>;
     onStatusChange?: (id: number, newStatus: string) => void;
+    onNotesClick?: (candidateId: number) => void;
+    onLabelUpdate?: (candidateId: number, newLabels: Label[]) => void;
 }
 
-export function DeveloperRow({ result, index, initialIsSaved = false, onToggleSave, teamId, visibleColumns, onStatusChange }: DeveloperRowProps) {
-    const { package: pkg, score } = result;
-    const [isSaved, setIsSaved] = useState(initialIsSaved);
+export function DeveloperRow({ candidate, index, isSaved = false, onSave, onRemove, teamId, visibleColumns, onStatusChange, onNotesClick, onLabelUpdate }: DeveloperRowProps) {
+    const { package: pkg, score } = candidate;
     const [isSaving, setIsSaving] = useState(false);
     const navigate = useNavigate();
+    const { user } = useAuthUI();
+    const { assignLabel, removeLabel } = useLabels(null);
 
-    const handleRowClick = () => {
-        if (result.id) {
-            navigate(`/candidate/${result.id}`);
+    const handleAssignLabel = async (label: Label) => {
+        if (!candidate.id || !onLabelUpdate) return;
+        try {
+            await assignLabel(candidate.id, label.id);
+            const currentLabels = candidate.labels || [];
+            onLabelUpdate(candidate.id, [...currentLabels, label]);
+        } catch (e) {
+            console.error(e);
         }
     };
 
-    useEffect(() => {
-        setIsSaved(initialIsSaved);
-    }, [initialIsSaved]);
+    const handleUnassignLabel = async (label: Label) => {
+        if (!candidate.id || !onLabelUpdate) return;
+        try {
+            await removeLabel(candidate.id, label.id);
+            const currentLabels = candidate.labels || [];
+            onLabelUpdate(candidate.id, currentLabels.filter(l => l.id !== label.id));
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleRowClick = () => {
+        if (candidate.id) {
+            navigate(`/candidate/${candidate.id}`);
+        }
+    };
 
     const toggleSave = async (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
 
-        const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
             alert('Please sign in to save candidates');
             return;
@@ -46,18 +71,27 @@ export function DeveloperRow({ result, index, initialIsSaved = false, onToggleSa
         setIsSaving(true);
         try {
             if (isSaved) {
-                await supabase
-                    .from('saved_candidates')
-                    .delete()
-                    .eq('package_name', pkg.name);
-
-                onToggleSave?.(pkg.name, false);
+                if (teamId) {
+                    // If in team view, we might need a specific check, but simplified for now:
+                    await supabase
+                        .from('saved_candidates')
+                        .delete()
+                        .eq('package_name', pkg.name)
+                        .eq('team_id', teamId);
+                } else {
+                    await supabase
+                        .from('saved_candidates')
+                        .delete()
+                        .eq('package_name', pkg.name)
+                        .eq('user_id', user.id);
+                }
+                onRemove?.(candidate);
             } else {
                 await supabase
                     .from('saved_candidates')
                     .insert({
                         user_id: user.id,
-                        team_id: teamId,
+                        team_id: teamId || null,
                         package_name: pkg.name,
                         package_version: pkg.version,
                         description: pkg.description,
@@ -72,9 +106,9 @@ export function DeveloperRow({ result, index, initialIsSaved = false, onToggleSa
                         score_quality: score.detail.quality,
                         score_popularity: score.detail.popularity,
                         score_maintenance: score.detail.maintenance,
-                        github_user_data: result.githubUser
+                        github_user_data: candidate.githubUser
                     });
-                onToggleSave?.(pkg.name, true);
+                onSave?.(candidate);
             }
         } catch (error) {
             console.error('Error toggling save:', error);
@@ -89,9 +123,9 @@ export function DeveloperRow({ result, index, initialIsSaved = false, onToggleSa
         hasVerifiedGithub,
         graphError,
         setGraphError
-    } = useDeveloperProfile(result);
+    } = useDeveloperProfile(candidate);
 
-    const userData = result.githubUser; // Alias for brevity
+    const userData = candidate.githubUser;
 
     const statusColors: Record<string, string> = {
         new: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
@@ -110,44 +144,63 @@ export function DeveloperRow({ result, index, initialIsSaved = false, onToggleSa
             className="group border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors align-middle"
         >
             <td className="py-4 pl-4">
-                <div className="flex items-center gap-3 min-w-0">
-                    <div
-                        onClick={handleRowClick}
-                        className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-indigo-400 font-bold text-lg flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-indigo-500 transition-all"
-                    >
-                        {result.githubUser?.avatar_url ? (
-                            <img src={result.githubUser.avatar_url} alt={result.package.publisher?.username} className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                            (result.package.publisher?.username || '?').charAt(0).toUpperCase()
-                        )}
-                    </div>
-                    <div className="min-w-0">
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
                         <div
                             onClick={handleRowClick}
-                            className="font-medium text-white truncate cursor-pointer hover:text-indigo-400 transition-colors"
+                            className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-indigo-400 font-bold text-lg flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-indigo-500 transition-all"
                         >
-                            {result.package.publisher?.username || 'Unknown'}
-                        </div>
-                        <div className="text-xs text-slate-500 flex items-center gap-1">
-                            {result.source === 'pypi' ? (
-                                <span className="text-yellow-500 flex items-center gap-1">
-                                    <img src="https://pypi.org/static/images/logo-small.2a411bc6.svg" className="w-3 h-3" alt="PyPI" />
-                                    PyPI
-                                </span>
-                            ) : result.source === 'github' ? (
-                                <span className="text-slate-400 flex items-center gap-1">
-                                    <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
-                                    GitHub
-                                </span>
+                            {candidate.githubUser?.avatar_url ? (
+                                <img src={candidate.githubUser.avatar_url} alt={candidate.package.publisher?.username} className="w-full h-full rounded-full object-cover" />
                             ) : (
-                                <span className="text-red-500 flex items-center gap-1">
-                                    <svg viewBox="0 0 780 250" className="w-3 h-3 fill-current"><path d="M240,250h100v-50h100V0H240V250z M340,50h50v100h-50V50z M480,0v200h100V50h50v150h50V50h50v150h50V0H480z M0,200h100V50h50v150h50V0H0V200z"></path></svg>
-                                    NPM
-                                </span>
+                                (candidate.package.publisher?.username || '?').charAt(0).toUpperCase()
                             )}
-
+                        </div>
+                        <div className="min-w-0">
+                            <div
+                                onClick={handleRowClick}
+                                className="font-medium text-white truncate cursor-pointer hover:text-indigo-400 transition-colors"
+                            >
+                                {candidate.package.publisher?.username || 'Unknown'}
+                            </div>
+                            <div className="text-xs text-slate-500 flex items-center gap-1">
+                                {candidate.source === 'pypi' ? (
+                                    <span className="text-yellow-500 flex items-center gap-1">
+                                        <img src="https://pypi.org/static/images/logo-small.2a411bc6.svg" className="w-3 h-3" alt="PyPI" />
+                                        PyPI
+                                    </span>
+                                ) : candidate.source === 'github' ? (
+                                    <span className="text-slate-400 flex items-center gap-1">
+                                        <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
+                                        GitHub
+                                    </span>
+                                ) : (
+                                    <span className="text-red-500 flex items-center gap-1">
+                                        <svg viewBox="0 0 780 250" className="w-3 h-3 fill-current"><path d="M240,250h100v-50h100V0H240V250z M340,50h50v100h-50V50z M480,0v200h100V50h50v150h50V50h50v150h50V0H480z M0,200h100V50h50v150h50V0H0V200z"></path></svg>
+                                        NPM
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
+                    {isSaved && candidate.labels && (
+                        <div className="flex flex-wrap items-center gap-1.5 pl-12">
+                            {candidate.labels.map(label => (
+                                <LabelBadge
+                                    key={label.id}
+                                    label={label}
+                                    size="sm"
+                                    onRemove={onLabelUpdate ? () => handleUnassignLabel(label) : undefined}
+                                />
+                            ))}
+                            <LabelPicker
+                                currentLabels={candidate.labels || []}
+                                onAssign={handleAssignLabel}
+                                onUnassign={handleUnassignLabel}
+                                teamId={teamId}
+                            />
+                        </div>
+                    )}
                 </div>
             </td>
 
@@ -169,8 +222,8 @@ export function DeveloperRow({ result, index, initialIsSaved = false, onToggleSa
             {/* Bio */}
             {visibleColumns.has('bio') && (
                 <td className="py-4 px-4 max-w-xs">
-                    <div className="text-sm text-slate-400 truncate" title={result.githubUser?.bio || pkg.description}>
-                        {result.githubUser?.bio || pkg.description}
+                    <div className="text-sm text-slate-400 truncate" title={candidate.githubUser?.bio || pkg.description}>
+                        {candidate.githubUser?.bio || pkg.description}
                     </div>
                 </td>
             )}
@@ -194,8 +247,8 @@ export function DeveloperRow({ result, index, initialIsSaved = false, onToggleSa
             {/* Impact Level */}
             {visibleColumns.has('impact') && (
                 <td className="py-4 px-4 whitespace-nowrap">
-                    <div className={`text-xs font-medium ${useDeveloperProfile(result).impactColor}`}>
-                        {useDeveloperProfile(result).impactLevel}
+                    <div className={`text-xs font-medium ${useDeveloperProfile(candidate).impactColor}`}>
+                        {useDeveloperProfile(candidate).impactLevel}
                     </div>
                 </td>
             )}
@@ -266,11 +319,11 @@ export function DeveloperRow({ result, index, initialIsSaved = false, onToggleSa
             {/* Status */}
             {visibleColumns.has('status') && onStatusChange && (
                 <td className="py-4 px-4">
-                    {result.status && result.id ? (
+                    {candidate.status && candidate.id ? (
                         <select
-                            value={result.status}
-                            onChange={(e) => onStatusChange(result.id!, e.target.value)}
-                            className={`text-xs font-medium px-2 py-1 rounded-lg border outline-none cursor-pointer ${statusColors[result.status]}`}
+                            value={candidate.status}
+                            onChange={(e) => onStatusChange(candidate.id!, e.target.value)}
+                            className={`text-xs font-medium px-2 py-1 rounded-lg border outline-none cursor-pointer ${statusColors[candidate.status]}`}
                             onClick={(e) => e.stopPropagation()}
                         >
                             <option value="new">New</option>
