@@ -164,6 +164,28 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
             {/* Header Background */}
             <div className="h-24 bg-gradient-to-r from-slate-800 to-slate-900 relative overflow-hidden">
                 <div className="absolute inset-0 bg-grid-white/[0.02] bg-[length:16px_16px]" />
+
+                {/* Labels in Header - Absolute Top Left */}
+                {isSaved && (
+                    <div className="absolute top-4 left-4 max-w-[65%] flex flex-wrap gap-1.5 z-20">
+                        {candidate.labels?.map(label => (
+                            <LabelBadge
+                                key={label.id}
+                                label={label}
+                                size="sm"
+                                onRemove={onLabelUpdate ? () => handleUnassignLabel(label) : undefined}
+                            />
+                        ))}
+                        <LabelPicker
+                            currentLabels={candidate.labels || []}
+                            onAssign={handleAssignLabel}
+                            onUnassign={handleUnassignLabel}
+                            teamId={teamId}
+                            align="left"
+                        />
+                    </div>
+                )}
+
                 <div className="absolute top-0 right-0 p-4 flex gap-2">
                     {showTopTalent && (
                         <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
@@ -255,33 +277,6 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
                         </h3>
                     </div>
 
-                    {isSaved && (
-                        <div className="px-6 pb-2 flex flex-wrap gap-2 items-center -mx-6 mb-2 relative z-20">
-                            {/* Added -mx-6 to counteract padding, just small style tweak */}
-                            <div className="px-6 flex flex-wrap gap-2">
-                                {candidate.labels?.map(label => (
-                                    <LabelBadge
-                                        key={label.id}
-                                        label={label}
-                                        size="sm"
-                                        onRemove={onLabelUpdate ? () => handleUnassignLabel(label) : undefined}
-                                    />
-                                ))}
-                                <LabelPicker
-                                    currentLabels={candidate.labels || []}
-                                    onAssign={handleAssignLabel}
-                                    onUnassign={handleUnassignLabel}
-                                    teamId={teamId}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-700/50 mt-auto">
-                        {/* Removed p-6 padding wrapper to fit better, using margin/padding utilities directly or keeping structure */}
-                        {/* Actually, let's keep the structure but ensure it flows. */}
-                    </div>
-                    {/* Re-adding the date/status section properly */}
                     <div className="flex items-center justify-between mb-2">
                         {candidate.status && onStatusChange && candidate.id ? (
                             <select
@@ -303,7 +298,6 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
                             </div>
                         )}
                     </div>
-
 
                     <div className={`text-sm font-medium ${impactColor} flex items-center gap-2 mb-2`}>
                         {impactLevel}
@@ -390,8 +384,7 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
                         </div>
                     </div>
                 </div>
-
             </div>
-        </motion.div>
+        </motion.div >
     );
 }
