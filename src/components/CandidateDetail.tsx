@@ -41,6 +41,10 @@ interface CandidateData {
         email: string;
     };
     labels?: Label[];
+    linkedinUrl?: string;
+    twitterUsername?: string;
+    location?: string;
+    company?: string;
 }
 
 export function CandidateDetail() {
@@ -53,8 +57,41 @@ export function CandidateDetail() {
     const [noteLoading, setNoteLoading] = useState(false);
     const [copied, setCopied] = useState(false);
     const [graphError, setGraphError] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editForm, setEditForm] = useState({
+        location: '',
+        company: '',
+        linkedinUrl: '',
+        twitterUsername: ''
+    });
 
     const { assignLabel, removeLabel } = useLabels(candidate?.team_id); // team_id might be null initially
+
+    const handleSaveProfile = async () => {
+        if (!candidate) return;
+        try {
+            const { error } = await supabase
+                .from('saved_candidates')
+                .update({
+                    location: editForm.location,
+                    company: editForm.company,
+                    linkedin_url: editForm.linkedinUrl,
+                    twitter_username: editForm.twitterUsername
+                })
+                .eq('id', candidate.id);
+
+            if (error) throw error;
+
+            setCandidate(prev => prev ? {
+                ...prev,
+                ...editForm
+            } : null);
+            setIsEditing(false);
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            alert('Failed to update profile');
+        }
+    };
 
     useEffect(() => {
         if (id) fetchCandidate();
@@ -77,10 +114,14 @@ export function CandidateDetail() {
 
             if (error) throw error;
 
-            // Map labels
+            // Map labels and new fields
             const transformedData = {
                 ...data,
-                labels: data.saved_candidate_labels?.map((scl: any) => scl.label) || []
+                labels: data.saved_candidate_labels?.map((scl: any) => scl.label) || [],
+                linkedinUrl: data.linkedin_url,
+                twitterUsername: data.twitter_username,
+                location: data.location,
+                company: data.company
             };
 
             setCandidate(transformedData);
@@ -214,33 +255,69 @@ export function CandidateDetail() {
                 {/* Left Column: Profile Info */}
                 <div className="lg:col-span-2 space-y-6">
                     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
-                        <div className="flex items-start justify-between mb-6">
-                            <div className="flex gap-6">
-                                <div className="w-24 h-24 rounded-2xl bg-slate-800 overflow-hidden border-2 border-slate-700">
-                                    <img
-                                        src={candidate.github_user_data?.avatar_url || `https://github.com/${candidate.publisher_username}.png`}
-                                        alt={candidate.publisher_username}
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
-                                <div>
-                                    <h1 className="text-3xl font-bold text-white mb-2">
-                                        {candidate.github_user_data?.name || candidate.publisher_username}
-                                    </h1>
-                                    <div className="flex items-center gap-4 text-slate-400 text-sm">
-                                        {candidate.github_user_data?.location && (
+                        <div className="flex gap-6">
+                            <div className="w-24 h-24 rounded-2xl bg-slate-800 overflow-hidden border-2 border-slate-700">
+                                <img
+                                    src={candidate.github_user_data?.avatar_url || `https://github.com/${candidate.publisher_username}.png`}
+                                    alt={candidate.publisher_username}
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <h1 className="text-3xl font-bold text-white mb-2">
+                                    {candidate.github_user_data?.name || candidate.publisher_username}
+                                </h1>
+
+                                {/* Editable Metadata Fields */}
+                                <div className="space-y-2">
+                                    {isEditing ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                                            <input
+                                                type="text"
+                                                placeholder="Location"
+                                                value={editForm.location}
+                                                onChange={e => setEditForm(prev => ({ ...prev, location: e.target.value }))}
+                                                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Company"
+                                                value={editForm.company}
+                                                onChange={e => setEditForm(prev => ({ ...prev, company: e.target.value }))}
+                                                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="LinkedIn URL"
+                                                value={editForm.linkedinUrl}
+                                                onChange={e => setEditForm(prev => ({ ...prev, linkedinUrl: e.target.value }))}
+                                                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Twitter Handle"
+                                                value={editForm.twitterUsername}
+                                                onChange={e => setEditForm(prev => ({ ...prev, twitterUsername: e.target.value }))}
+                                                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-wrap items-center gap-4 text-slate-400 text-sm">
                                             <div className="flex items-center gap-1">
-                                                <MapPin className="w-4 h-4" /> {candidate.github_user_data.location}
+                                                <MapPin className="w-4 h-4" />
+                                                {candidate.location || candidate.github_user_data?.location || 'Unknown Location'}
                                             </div>
-                                        )}
-                                        {candidate.github_user_data?.company && (
                                             <div className="flex items-center gap-1">
-                                                <Users className="w-4 h-4" /> {candidate.github_user_data.company}
+                                                <Users className="w-4 h-4" />
+                                                {candidate.company || candidate.github_user_data?.company || 'Unknown Company'}
                                             </div>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
+                        </div>
+
+                        <div className="flex flex-col items-end gap-2">
                             <div className="flex gap-2">
                                 {candidate.repository_link && (
                                     <a href={candidate.repository_link} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors">
@@ -252,152 +329,179 @@ export function CandidateDetail() {
                                         <ExternalLink className="w-5 h-5" />
                                     </a>
                                 )}
+                                {candidate.linkedinUrl && !isEditing && (
+                                    <a href={candidate.linkedinUrl} target="_blank" rel="noopener noreferrer" className="p-2 bg-[#0077b5]/10 hover:bg-[#0077b5]/20 text-[#0077b5] rounded-lg transition-colors">
+                                        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" /></svg>
+                                    </a>
+                                )}
+                                {candidate.twitterUsername && !isEditing && (
+                                    <a href={`https://twitter.com/${candidate.twitterUsername}`} target="_blank" rel="noopener noreferrer" className="p-2 bg-[#1DA1F2]/10 hover:bg-[#1DA1F2]/20 text-[#1DA1F2] rounded-lg transition-colors">
+                                        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" /></svg>
+                                    </a>
+                                )}
                             </div>
-                        </div>
 
-                        <div className="prose prose-invert max-w-none mb-8">
-                            <p className="text-slate-300 text-lg">{candidate.description}</p>
-                            {candidate.github_user_data?.bio && (
-                                <p className="text-slate-400 italic border-l-2 border-slate-700 pl-4 mt-4">
-                                    "{candidate.github_user_data.bio}"
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 mb-8">
-                            {candidate.keywords?.map(tag => (
-                                <span key={tag} className="px-3 py-1 rounded-full bg-slate-800 text-slate-300 text-sm border border-slate-700">
-                                    {tag}
-                                </span>
-                            ))}
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-4 border-t border-slate-800 pt-6">
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-white">{candidate.github_user_data?.public_repos || '-'}</div>
-                                <div className="text-xs text-slate-500 uppercase tracking-wider">Repos</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-white">{candidate.github_user_data?.followers || '-'}</div>
-                                <div className="text-xs text-slate-500 uppercase tracking-wider">Followers</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-white">{Math.round(candidate.score_final * 100)}</div>
-                                <div className="text-xs text-slate-500 uppercase tracking-wider">Score</div>
-                            </div>
+                            <button
+                                onClick={isEditing ? handleSaveProfile : () => {
+                                    setEditForm({
+                                        location: candidate.location || candidate.github_user_data?.location || '',
+                                        company: candidate.company || candidate.github_user_data?.company || '',
+                                        linkedinUrl: candidate.linkedinUrl || '',
+                                        twitterUsername: candidate.twitterUsername || ''
+                                    });
+                                    setIsEditing(true);
+                                }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${isEditing
+                                    ? 'bg-indigo-500 text-white border-indigo-500 hover:bg-indigo-600'
+                                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'}`}
+                            >
+                                {isEditing ? 'Save Changes' : 'Edit Profile'}
+                            </button>
                         </div>
                     </div>
 
-                    {/* GitHub Contribution Graph */}
-                    {!graphError && (candidate.github_user_data?.login || candidate.publisher_username) && (
-                        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
-                            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                                <TrendingUp className="w-5 h-5 text-indigo-400" />
-                                Contribution Activity
-                            </h3>
-                            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/30 overflow-hidden">
-                                <img
-                                    src={`https://ghchart.rshah.org/4f46e5/${candidate.github_user_data?.login || candidate.publisher_username}`}
-                                    alt="Contribution Graph"
-                                    className="w-full h-auto opacity-80 hover:opacity-100 transition-opacity"
-                                    onError={() => setGraphError(true)}
-                                />
-                            </div>
+                    <div className="prose prose-invert max-w-none mb-8">
+                        <p className="text-slate-300 text-lg">{candidate.description}</p>
+                        {candidate.github_user_data?.bio && (
+                            <p className="text-slate-400 italic border-l-2 border-slate-700 pl-4 mt-4">
+                                "{candidate.github_user_data.bio}"
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mb-8">
+                        {candidate.keywords?.map(tag => (
+                            <span key={tag} className="px-3 py-1 rounded-full bg-slate-800 text-slate-300 text-sm border border-slate-700">
+                                {tag}
+                            </span>
+                        ))}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4 border-t border-slate-800 pt-6">
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-white">{candidate.github_user_data?.public_repos || '-'}</div>
+                            <div className="text-xs text-slate-500 uppercase tracking-wider">Repos</div>
                         </div>
-                    )}
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-white">{candidate.github_user_data?.followers || '-'}</div>
+                            <div className="text-xs text-slate-500 uppercase tracking-wider">Followers</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-white">{Math.round(candidate.score_final * 100)}</div>
+                            <div className="text-xs text-slate-500 uppercase tracking-wider">Score</div>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Right Column: Status & Notes */}
-                <div className="space-y-6">
-                    {/* Status Card */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Outreach Status</h3>
-
-                        <div className="mb-6">
-                            <select
-                                value={candidate.status || 'new'}
-                                onChange={(e) => handleStatusChange(e.target.value)}
-                                className={`w-full appearance-none px-4 py-3 rounded-xl border font-medium outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all ${statusColors[candidate.status || 'new']}`}
-                            >
-                                <option value="new">New Candidate</option>
-                                <option value="contacted">Contacted</option>
-                                <option value="replied">Replied</option>
-                                <option value="interviewing">Interviewing</option>
-                                <option value="hired">Hired</option>
-                                <option value="rejected">Rejected</option>
-                            </select>
-                        </div>
-
-                        <div className="mb-6">
-                            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                Labels
-                            </h3>
-                            <div className="flex flex-wrap gap-2">
-                                {candidate.labels?.map(label => (
-                                    <LabelBadge
-                                        key={label.id}
-                                        label={label}
-                                        size="sm"
-                                        onRemove={() => handleUnassignLabel(label)}
-                                    />
-                                ))}
-                                <LabelPicker
-                                    currentLabels={candidate.labels || []}
-                                    onAssign={handleAssignLabel}
-                                    onUnassign={handleUnassignLabel}
-                                    teamId={candidate.team_id}
-                                    align="left"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="pt-4 border-t border-slate-800 text-xs text-slate-500 flex justify-between">
-                            <span>Saved by {candidate.profiles?.email}</span>
-                            <span>{new Date(candidate.date).toLocaleDateString()}</span>
-                        </div>
-                    </div>
-
-                    {/* Notes Card */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col h-[500px]">
-                        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <MessageSquare className="w-4 h-4" /> Team Notes
+                {/* GitHub Contribution Graph */}
+                {!graphError && (candidate.github_user_data?.login || candidate.publisher_username) && (
+                    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
+                        <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5 text-indigo-400" />
+                            Contribution Activity
                         </h3>
-
-                        <div className="flex-grow overflow-y-auto space-y-4 mb-4 pr-2 custom-scrollbar">
-                            {notes.length === 0 ? (
-                                <div className="text-center py-10 text-slate-600 italic text-sm">
-                                    No notes yet. Start the discussion!
-                                </div>
-                            ) : (
-                                notes.map(note => (
-                                    <div key={note.id} className="bg-slate-800/50 rounded-xl p-3 border border-slate-800">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <span className="text-xs font-bold text-indigo-400">{note.profiles?.email}</span>
-                                            <span className="text-[10px] text-slate-600">{new Date(note.created_at).toLocaleDateString()}</span>
-                                        </div>
-                                        <p className="text-slate-300 text-sm whitespace-pre-wrap">{note.content}</p>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-
-                        <form onSubmit={handleAddNote} className="relative">
-                            <input
-                                type="text"
-                                value={newNote}
-                                onChange={(e) => setNewNote(e.target.value)}
-                                placeholder="Add a note..."
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-12 py-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/30 overflow-hidden">
+                            <img
+                                src={`https://ghchart.rshah.org/4f46e5/${candidate.github_user_data?.login || candidate.publisher_username}`}
+                                alt="Contribution Graph"
+                                className="w-full h-auto opacity-80 hover:opacity-100 transition-opacity"
+                                onError={() => setGraphError(true)}
                             />
-                            <button
-                                type="submit"
-                                disabled={noteLoading || !newNote.trim()}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:hover:bg-indigo-500 transition-colors"
-                            >
-                                <Send className="w-4 h-4" />
-                            </button>
-                        </form>
+                        </div>
                     </div>
+                )}
+            </div>
+
+            {/* Right Column: Status & Notes */}
+            <div className="space-y-6">
+                {/* Status Card */}
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Outreach Status</h3>
+
+                    <div className="mb-6">
+                        <select
+                            value={candidate.status || 'new'}
+                            onChange={(e) => handleStatusChange(e.target.value)}
+                            className={`w-full appearance-none px-4 py-3 rounded-xl border font-medium outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all ${statusColors[candidate.status || 'new']}`}
+                        >
+                            <option value="new">New Candidate</option>
+                            <option value="contacted">Contacted</option>
+                            <option value="replied">Replied</option>
+                            <option value="interviewing">Interviewing</option>
+                            <option value="hired">Hired</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+
+                    <div className="mb-6">
+                        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            Labels
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                            {candidate.labels?.map(label => (
+                                <LabelBadge
+                                    key={label.id}
+                                    label={label}
+                                    size="sm"
+                                    onRemove={() => handleUnassignLabel(label)}
+                                />
+                            ))}
+                            <LabelPicker
+                                currentLabels={candidate.labels || []}
+                                onAssign={handleAssignLabel}
+                                onUnassign={handleUnassignLabel}
+                                teamId={candidate.team_id}
+                                align="left"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-800 text-xs text-slate-500 flex justify-between">
+                        <span>Saved by {candidate.profiles?.email}</span>
+                        <span>{new Date(candidate.date).toLocaleDateString()}</span>
+                    </div>
+                </div>
+
+                {/* Notes Card */}
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col h-[500px]">
+                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" /> Team Notes
+                    </h3>
+
+                    <div className="flex-grow overflow-y-auto space-y-4 mb-4 pr-2 custom-scrollbar">
+                        {notes.length === 0 ? (
+                            <div className="text-center py-10 text-slate-600 italic text-sm">
+                                No notes yet. Start the discussion!
+                            </div>
+                        ) : (
+                            notes.map(note => (
+                                <div key={note.id} className="bg-slate-800/50 rounded-xl p-3 border border-slate-800">
+                                    <div className="flex justify-between items-start mb-1">
+                                        <span className="text-xs font-bold text-indigo-400">{note.profiles?.email}</span>
+                                        <span className="text-[10px] text-slate-600">{new Date(note.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                    <p className="text-slate-300 text-sm whitespace-pre-wrap">{note.content}</p>
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    <form onSubmit={handleAddNote} className="relative">
+                        <input
+                            type="text"
+                            value={newNote}
+                            onChange={(e) => setNewNote(e.target.value)}
+                            placeholder="Add a note..."
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-12 py-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                        />
+                        <button
+                            type="submit"
+                            disabled={noteLoading || !newNote.trim()}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:hover:bg-indigo-500 transition-colors"
+                        >
+                            <Send className="w-4 h-4" />
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

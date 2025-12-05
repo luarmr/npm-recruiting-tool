@@ -56,6 +56,11 @@ export interface CandidateResult {
     id?: number; // Database ID for saved candidates
     source: 'npm' | 'pypi' | 'github';
     labels?: Label[];
+    // Manual overrides / enrichment
+    linkedinUrl?: string;
+    twitterUsername?: string;
+    location?: string;
+    company?: string;
 }
 
 export interface NpmSearchResponse {

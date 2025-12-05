@@ -94,7 +94,12 @@ export function SavedCandidates() {
                 status: item.status || 'new',
                 source: item.source || 'npm',
                 // Map joined labels
-                labels: item.saved_candidate_labels.map((scl: any) => scl.label)
+                labels: item.saved_candidate_labels.map((scl: any) => scl.label),
+                // Manual fields
+                linkedinUrl: item.linkedin_url,
+                twitterUsername: item.twitter_username,
+                location: item.location,
+                company: item.company
             }));
 
             setSavedProfiles(results);
