@@ -165,37 +165,6 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
             <div className="h-24 bg-gradient-to-r from-slate-800 to-slate-900 relative overflow-hidden">
                 <div className="absolute inset-0 bg-grid-white/[0.02] bg-[length:16px_16px]" />
 
-                {/* Labels in Header - Absolute Top Left */}
-                {isSaved && (
-                    <div className="absolute top-4 left-4 max-w-[60%] flex flex-wrap gap-1.5 z-20">
-                        {/* Show only first 2 labels */}
-                        {candidate.labels?.slice(0, 2).map(label => (
-                            <LabelBadge
-                                key={label.id}
-                                label={label}
-                                size="sm"
-                                onRemove={onLabelUpdate ? () => handleUnassignLabel(label) : undefined}
-                            />
-                        ))}
-
-                        {/* Overflow Badge */}
-                        {(candidate.labels?.length || 0) > 2 && (
-                            <span className="text-[10px] items-center justify-center flex font-medium px-1.5 py-0.5 rounded-full bg-slate-800/80 text-slate-300 border border-slate-700/50 backdrop-blur-sm h-5">
-                                +{(candidate.labels?.length || 0) - 2}
-                            </span>
-                        )}
-
-                        <LabelPicker
-                            currentLabels={candidate.labels || []}
-                            onAssign={handleAssignLabel}
-                            onUnassign={handleUnassignLabel}
-                            teamId={teamId}
-                            align="left"
-                        // Use a smaller/icon-only trigger if needed, but standard is fine
-                        />
-                    </div>
-                )}
-
                 <div className="absolute top-0 right-0 p-4 flex gap-2">
                     {showTopTalent && (
                         <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
@@ -329,6 +298,32 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
                         Maintainer of <span className="text-slate-200 font-medium">{pkg.name}</span>. {pkg.description}
                     </p>
                 </div>
+
+                {/* Labels Section */}
+                {isSaved && (
+                    <div className="mb-6">
+                        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <Trophy className="w-3 h-3" /> Labels
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                            {candidate.labels?.map(label => (
+                                <LabelBadge
+                                    key={label.id}
+                                    label={label}
+                                    size="sm"
+                                    onRemove={onLabelUpdate ? () => handleUnassignLabel(label) : undefined}
+                                />
+                            ))}
+                            <LabelPicker
+                                currentLabels={candidate.labels || []}
+                                onAssign={handleAssignLabel}
+                                onUnassign={handleUnassignLabel}
+                                teamId={teamId}
+                                align="left"
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {/* Skills / Tech Stack */}
                 <div className="mb-6">
