@@ -198,6 +198,7 @@ export function DeveloperRow({ candidate, index, isSaved = false, onSave, onRemo
                                 onAssign={handleAssignLabel}
                                 onUnassign={handleUnassignLabel}
                                 teamId={teamId}
+                                align="left"
                             />
                         </div>
                     )}

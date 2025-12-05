@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Plus, Check, Tag } from "lucide-react";
 import type { Label } from "../types";
 import { useLabels } from "../hooks/useLabels";
@@ -9,6 +10,7 @@ interface LabelPickerProps {
     onAssign: (label: Label) => void;
     onUnassign: (label: Label) => void;
     teamId?: string | null;
+    align?: "left" | "right";
 }
 
 const COLORS = [
@@ -30,18 +32,25 @@ export function LabelPicker({
     onAssign,
     onUnassign,
     teamId,
+    align = "right",
 }: LabelPickerProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
     const { labels, createLabel, refreshLabels } = useLabels(teamId);
     const { user } = useUser();
+
+    // State to store button position for Portal
+    const [coords, setCoords] = useState({ top: 0, left: 0 });
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (
                 dropdownRef.current &&
-                !dropdownRef.current.contains(event.target as Node)
+                !dropdownRef.current.contains(event.target as Node) &&
+                buttonRef.current &&
+                !buttonRef.current.contains(event.target as Node)
             ) {
                 setIsOpen(false);
             }
@@ -52,10 +61,31 @@ export function LabelPicker({
 
     // Refresh labels when opening to ensure we have the latest
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && buttonRef.current) {
             refreshLabels();
+            const rect = buttonRef.current.getBoundingClientRect();
+            // Calculate position: below the button
+            // If align="right", dropdown right edge aligns with button right edge
+            // If align="left", dropdown left edge aligns with button left edge
+            const dropdownWidth = 256; // w-64 is 16rem = 256px
+            let left = rect.left;
+
+            if (align === "right") {
+                left = rect.right - dropdownWidth;
+            }
+
+            // Basic viewport boundary check (prevent going off screen)
+            if (left < 10) left = 10;
+            if (left + dropdownWidth > window.innerWidth - 10) {
+                left = window.innerWidth - dropdownWidth - 10;
+            }
+
+            setCoords({
+                top: rect.bottom + window.scrollY + 4, // 4px gap
+                left: left + window.scrollX,
+            });
         }
-    }, [isOpen]);
+    }, [isOpen, align]);
 
     const filteredLabels = labels.filter((label) =>
         label.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -87,17 +117,25 @@ export function LabelPicker({
     if (!user) return null;
 
     return (
-        <div className="relative" ref={dropdownRef}>
+        <>
             <button
+                ref={buttonRef}
                 onClick={() => setIsOpen(!isOpen)}
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors flex-shrink-0"
                 title="Add Label"
             >
                 <Tag className="w-4 h-4" />
             </button>
 
-            {isOpen && (
-                <div className="absolute right-0 top-full mt-2 w-64 bg-slate-900 border border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden">
+            {isOpen && createPortal(
+                <div
+                    ref={dropdownRef}
+                    className="fixed w-64 bg-slate-900 border border-slate-700 rounded-xl shadow-xl z-[9999] overflow-hidden"
+                    style={{
+                        top: coords.top,
+                        left: coords.left,
+                    }}
+                >
                     <div className="p-3 border-b border-slate-700">
                         <input
                             type="text"
@@ -148,8 +186,9 @@ export function LabelPicker({
                             </div>
                         )}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
-        </div>
+        </>
     );
 }

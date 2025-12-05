@@ -9,6 +9,7 @@ import { useColumnPreferences } from '../hooks/useColumnPreferences';
 import { ColumnSelector } from './ColumnSelector';
 import { Link } from 'react-router-dom';
 import { useLabels } from '../hooks/useLabels';
+import { SkeletonCard } from './SkeletonCard';
 
 export function SavedCandidates() {
     const [savedProfiles, setSavedProfiles] = useState<CandidateResult[]>([]);
@@ -192,9 +193,33 @@ export function SavedCandidates() {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center py-20">
-                <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
-                <p className="text-slate-400">Loading saved profiles...</p>
+            <div className={`w-full mx-auto transition-all duration-300 ${viewMode === 'grid' ? 'max-w-7xl' : 'w-full px-4'}`}>
+                <div className="flex items-center gap-3 pb-6 border-b border-slate-800/50 mb-8">
+                    <div className="p-2 bg-pink-500/10 rounded-lg">
+                        <Heart className="w-6 h-6 text-pink-500 fill-pink-500" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-white">Saved Candidates</h2>
+                        <p className="text-slate-400">Loading your shortlist...</p>
+                    </div>
+                </div>
+
+
+                {viewMode === 'grid' ? (
+                    <div className="flex flex-wrap justify-center gap-6">
+                        {[...Array(6)].map((_, i) => (
+                            <div key={i} className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] max-w-md">
+                                <SkeletonCard />
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {[...Array(6)].map((_, i) => (
+                            <div key={i} className="h-24 w-full bg-slate-900 rounded-xl border border-slate-800 animate-pulse" />
+                        ))}
+                    </div>
+                )}
             </div>
         );
     }
@@ -266,8 +291,8 @@ export function SavedCandidates() {
                                 key={label.id}
                                 onClick={() => setSelectedLabelId(label.id)}
                                 className={`px-3 py-1 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1 ${selectedLabelId === label.id
-                                        ? 'ring-2 ring-white'
-                                        : 'hover:opacity-80'
+                                    ? 'ring-2 ring-white'
+                                    : 'hover:opacity-80'
                                     }`}
                                 style={{
                                     backgroundColor: `${label.color}20`,

@@ -187,8 +187,9 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
 
             <div className="px-6 pb-6 flex-grow flex flex-col">
                 {/* Avatar & Name */}
-                <div className="relative -mt-12 mb-4 flex justify-between items-end">
-                    <div className="w-24 h-24 rounded-2xl border-4 border-slate-900 bg-slate-800 overflow-hidden shadow-lg">
+                <div className="absolute inset-0 z-0" />
+                <div className="relative -mt-12 mb-4 flex justify-between items-end z-10">
+                    <div className="w-24 h-24 rounded-2xl border-4 border-slate-900 bg-slate-800 overflow-hidden shadow-lg relative z-20">
                         <img
                             src={avatarUrl}
                             alt={pkg.publisher?.username}
@@ -196,7 +197,7 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
                             onError={() => setAvatarError(true)}
                         />
                     </div>
-                    <div className="flex gap-2 mb-1">
+                    <div className="flex gap-2 mb-1 z-20">
                         {githubProfileUrl && (
                             <a
                                 href={githubProfileUrl}
@@ -255,7 +256,7 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
                     </div>
 
                     {isSaved && (
-                        <div className="px-6 pb-2 flex flex-wrap gap-2 items-center -mx-6 mb-2">
+                        <div className="px-6 pb-2 flex flex-wrap gap-2 items-center -mx-6 mb-2 relative z-20">
                             {/* Added -mx-6 to counteract padding, just small style tweak */}
                             <div className="px-6 flex flex-wrap gap-2">
                                 {candidate.labels?.map(label => (
