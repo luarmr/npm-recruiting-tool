@@ -10,6 +10,7 @@ import { ColumnSelector } from './ColumnSelector';
 import { Link } from 'react-router-dom';
 import { useLabels } from '../hooks/useLabels';
 import { SkeletonCard } from './SkeletonCard';
+import { downloadCSV, downloadJSON } from '../utils/exportUtils';
 
 export function SavedCandidates() {
     const [savedProfiles, setSavedProfiles] = useState<CandidateResult[]>([]);
@@ -255,13 +256,34 @@ export function SavedCandidates() {
                         <h2 className="text-2xl font-bold text-white">Saved Candidates</h2>
                         <p className="text-slate-400">Your shortlisted developers</p>
                     </div>
-                    <button
-                        onClick={() => setIsAddModalOpen(true)}
-                        className="ml-auto flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Add Candidate
-                    </button>
+                    <div className="ml-auto flex items-center gap-3">
+                        <div className="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
+                            <button
+                                onClick={() => downloadCSV(filteredProfiles)}
+                                disabled={filteredProfiles.length === 0}
+                                className="px-3 py-1.5 text-xs text-slate-300 hover:text-white hover:bg-slate-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Export as CSV"
+                            >
+                                CSV
+                            </button>
+                            <div className="w-[1px] bg-slate-700 my-1" />
+                            <button
+                                onClick={() => downloadJSON(filteredProfiles)}
+                                disabled={filteredProfiles.length === 0}
+                                className="px-3 py-1.5 text-xs text-slate-300 hover:text-white hover:bg-slate-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Export as JSON"
+                            >
+                                JSON
+                            </button>
+                        </div>
+                        <button
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Candidate
+                        </button>
+                    </div>
                 </div>
 
                 <Link
