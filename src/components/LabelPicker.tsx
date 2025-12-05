@@ -120,7 +120,10 @@ export function LabelPicker({
         <>
             <button
                 ref={buttonRef}
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setIsOpen(!isOpen);
+                }}
                 className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors flex-shrink-0"
                 title="Add Label"
             >
@@ -135,6 +138,7 @@ export function LabelPicker({
                         top: coords.top,
                         left: coords.left,
                     }}
+                    onClick={(e) => e.stopPropagation()}
                 >
                     <div className="p-3 border-b border-slate-700">
                         <input

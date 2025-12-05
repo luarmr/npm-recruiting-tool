@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { ArrowLeft, ExternalLink, Github, MapPin, MessageSquare, Send, Copy, Check, Users, TrendingUp } from 'lucide-react';
-
+import { LabelBadge } from './LabelBadge';
+import { LabelPicker } from './LabelPicker';
+import { useLabels } from '../hooks/useLabels';
+import type { Label } from '../types';
 
 interface Note {
     id: string;
@@ -37,6 +40,7 @@ interface CandidateData {
     profiles?: {
         email: string;
     };
+    labels?: Label[];
 }
 
 export function CandidateDetail() {
@@ -50,6 +54,8 @@ export function CandidateDetail() {
     const [copied, setCopied] = useState(false);
     const [graphError, setGraphError] = useState(false);
 
+    const { assignLabel, removeLabel } = useLabels(candidate?.team_id); // team_id might be null initially
+
     useEffect(() => {
         if (id) fetchCandidate();
     }, [id]);
@@ -59,12 +65,25 @@ export function CandidateDetail() {
             // Fetch Candidate
             const { data, error } = await supabase
                 .from('saved_candidates')
-                .select('*, profiles(email)')
+                .select(`
+                    *,
+                    profiles(email),
+                    saved_candidate_labels (
+                        label: labels (*)
+                    )
+                `)
                 .eq('id', id)
                 .single();
 
             if (error) throw error;
-            setCandidate(data);
+
+            // Map labels
+            const transformedData = {
+                ...data,
+                labels: data.saved_candidate_labels?.map((scl: any) => scl.label) || []
+            };
+
+            setCandidate(transformedData);
 
             // Fetch Notes
             fetchNotes();
@@ -99,6 +118,32 @@ export function CandidateDetail() {
             alert('Failed to update status');
         } else {
             setCandidate({ ...candidate, status: newStatus });
+        }
+    };
+
+    const handleAssignLabel = async (label: Label) => {
+        if (!candidate) return;
+        try {
+            await assignLabel(candidate.id, label.id);
+            setCandidate(prev => prev ? {
+                ...prev,
+                labels: [...(prev.labels || []), label]
+            } : null);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleUnassignLabel = async (label: Label) => {
+        if (!candidate) return;
+        try {
+            await removeLabel(candidate.id, label.id);
+            setCandidate(prev => prev ? {
+                ...prev,
+                labels: (prev.labels || []).filter(l => l.id !== label.id)
+            } : null);
+        } catch (e) {
+            console.error(e);
         }
     };
 
@@ -267,20 +312,46 @@ export function CandidateDetail() {
                     {/* Status Card */}
                     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
                         <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Outreach Status</h3>
-                        <select
-                            value={candidate.status || 'new'}
-                            onChange={(e) => handleStatusChange(e.target.value)}
-                            className={`w-full appearance-none px-4 py-3 rounded-xl border font-medium outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all ${statusColors[candidate.status || 'new']}`}
-                        >
-                            <option value="new">New Candidate</option>
-                            <option value="contacted">Contacted</option>
-                            <option value="replied">Replied</option>
-                            <option value="interviewing">Interviewing</option>
-                            <option value="hired">Hired</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
 
-                        <div className="mt-4 pt-4 border-t border-slate-800 text-xs text-slate-500 flex justify-between">
+                        <div className="mb-6">
+                            <select
+                                value={candidate.status || 'new'}
+                                onChange={(e) => handleStatusChange(e.target.value)}
+                                className={`w-full appearance-none px-4 py-3 rounded-xl border font-medium outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 transition-all ${statusColors[candidate.status || 'new']}`}
+                            >
+                                <option value="new">New Candidate</option>
+                                <option value="contacted">Contacted</option>
+                                <option value="replied">Replied</option>
+                                <option value="interviewing">Interviewing</option>
+                                <option value="hired">Hired</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+
+                        <div className="mb-6">
+                            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                Labels
+                            </h3>
+                            <div className="flex flex-wrap gap-2">
+                                {candidate.labels?.map(label => (
+                                    <LabelBadge
+                                        key={label.id}
+                                        label={label}
+                                        size="sm"
+                                        onRemove={() => handleUnassignLabel(label)}
+                                    />
+                                ))}
+                                <LabelPicker
+                                    currentLabels={candidate.labels || []}
+                                    onAssign={handleAssignLabel}
+                                    onUnassign={handleUnassignLabel}
+                                    teamId={candidate.team_id}
+                                    align="left"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-800 text-xs text-slate-500 flex justify-between">
                             <span>Saved by {candidate.profiles?.email}</span>
                             <span>{new Date(candidate.date).toLocaleDateString()}</span>
                         </div>

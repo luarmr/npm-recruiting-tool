@@ -183,25 +183,7 @@ export function DeveloperRow({ candidate, index, isSaved = false, onSave, onRemo
                             </div>
                         </div>
                     </div>
-                    {isSaved && candidate.labels && (
-                        <div className="flex flex-wrap items-center gap-1.5 pl-12">
-                            {candidate.labels.map(label => (
-                                <LabelBadge
-                                    key={label.id}
-                                    label={label}
-                                    size="sm"
-                                    onRemove={onLabelUpdate ? () => handleUnassignLabel(label) : undefined}
-                                />
-                            ))}
-                            <LabelPicker
-                                currentLabels={candidate.labels || []}
-                                onAssign={handleAssignLabel}
-                                onUnassign={handleUnassignLabel}
-                                teamId={teamId}
-                                align="left"
-                            />
-                        </div>
-                    )}
+                    {/* Labels removed from here */}
                 </div>
             </td>
 
@@ -318,6 +300,7 @@ export function DeveloperRow({ candidate, index, isSaved = false, onSave, onRemo
             )}
 
             {/* Status */}
+            {/* Status */}
             {visibleColumns.has('status') && onStatusChange && (
                 <td className="py-4 px-4">
                     {candidate.status && candidate.id ? (
@@ -334,6 +317,33 @@ export function DeveloperRow({ candidate, index, isSaved = false, onSave, onRemo
                             <option value="hired">Hired</option>
                             <option value="rejected">Rejected</option>
                         </select>
+                    ) : (
+                        <span className="text-xs text-slate-600">-</span>
+                    )}
+                </td>
+            )}
+
+            {/* Labels */}
+            {visibleColumns.has('labels') && (
+                <td className="py-4 px-4">
+                    {candidate.id ? (
+                        <div className="flex flex-wrap items-center gap-1.5 min-w-[200px]">
+                            {candidate.labels?.map(label => (
+                                <LabelBadge
+                                    key={label.id}
+                                    label={label}
+                                    size="sm"
+                                    onRemove={onLabelUpdate ? () => handleUnassignLabel(label) : undefined}
+                                />
+                            ))}
+                            <LabelPicker
+                                currentLabels={candidate.labels || []}
+                                onAssign={handleAssignLabel}
+                                onUnassign={handleUnassignLabel}
+                                teamId={teamId}
+                                align="left"
+                            />
+                        </div>
                     ) : (
                         <span className="text-xs text-slate-600">-</span>
                     )}

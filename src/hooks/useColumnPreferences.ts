@@ -10,7 +10,8 @@ export type ColumnId =
     | 'following'
     | 'location'
     | 'contributions'
-    | 'status';
+    | 'status'
+    | 'labels';
 
 export const AVAILABLE_COLUMNS: { id: ColumnId; label: string }[] = [
     { id: 'username', label: 'Username' },
@@ -23,6 +24,7 @@ export const AVAILABLE_COLUMNS: { id: ColumnId; label: string }[] = [
     { id: 'location', label: 'Location' },
     { id: 'contributions', label: 'Contributions' },
     { id: 'status', label: 'Status' },
+    { id: 'labels', label: 'Labels' },
 ];
 
 const DEFAULT_COLUMNS: ColumnId[] = [
@@ -34,7 +36,8 @@ const DEFAULT_COLUMNS: ColumnId[] = [
     'followers',
     'location',
     'contributions',
-    'status'
+    'status',
+    'labels'
 ];
 
 export function useColumnPreferences() {

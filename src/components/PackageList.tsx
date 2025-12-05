@@ -159,6 +159,7 @@ export function PackageList({
                                 {visibleColumns.has('location') && <th className="py-4 px-4 font-medium">Location</th>}
                                 {visibleColumns.has('contributions') && <th className="py-4 pr-4 font-medium w-64">Contributions (Last Year)</th>}
                                 {visibleColumns.has('status') && onStatusChange && <th className="py-4 px-4 font-medium">Status</th>}
+                                {visibleColumns.has('labels') && <th className="py-4 px-4 font-medium">Labels</th>}
                                 <th className="py-4 pr-4 font-medium w-16 text-right">Actions</th>
                             </tr>
                         </thead>
