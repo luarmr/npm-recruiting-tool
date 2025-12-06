@@ -363,7 +363,7 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
 
                 {/* Saved By Usage */}
                 {isSaved && (
-                    <div className="flex items-center gap-4 text-xs text-slate-500 mt-auto pt-4 border-t border-slate-800">
+                    <div className="flex items-center gap-4 text-xs text-slate-500 mb-4">
                         <div className="flex items-center gap-2">
                             {typeof candidate.savedBy === 'object' && candidate.savedBy?.avatar_url ? (
                                 <img

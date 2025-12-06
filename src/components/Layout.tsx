@@ -139,8 +139,16 @@ export function Layout({ children }: LayoutProps) {
 
                                 <div className="h-4 w-px bg-slate-800"></div>
                                 <div className="flex items-center gap-2 text-sm text-slate-300">
-                                    <UserIcon className="w-4 h-4" />
-                                    <span className="hidden sm:inline">{user.email}</span>
+                                    {user.user_metadata?.avatar_url ? (
+                                        <img
+                                            src={user.user_metadata.avatar_url}
+                                            alt={user.email}
+                                            className="w-6 h-6 rounded-full border border-slate-700"
+                                        />
+                                    ) : (
+                                        <UserIcon className="w-4 h-4" />
+                                    )}
+                                    <span className="hidden sm:inline">{user.user_metadata?.full_name || user.email}</span>
                                 </div>
                                 <button
                                     onClick={handleSignOut}
