@@ -36,6 +36,12 @@ export interface NpmScore {
 
 export type Status = 'new' | 'contacted' | 'replied' | 'interviewing' | 'hired' | 'rejected';
 
+export interface UserProfile {
+    email: string;
+    avatar_url?: string;
+    full_name?: string;
+}
+
 export interface CandidateResult {
     package: NpmPackage;
     score: NpmScore;
@@ -51,7 +57,7 @@ export interface CandidateResult {
         following?: number;
         public_repos?: number;
     };
-    savedBy?: string; // Email of the user who saved this candidate
+    savedBy?: string | UserProfile; // Backward compatibility + new object structure
     status?: Status;
     id?: number; // Database ID for saved candidates
     source: 'npm' | 'pypi' | 'github';

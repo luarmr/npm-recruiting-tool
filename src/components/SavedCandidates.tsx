@@ -53,7 +53,7 @@ export function SavedCandidates() {
                 .from('saved_candidates')
                 .select(`
                     *,
-                    profiles(email),
+                    profiles(email, avatar_url, full_name),
                     saved_candidate_labels (
                         label: labels (*)
                     )
@@ -91,7 +91,11 @@ export function SavedCandidates() {
                 searchScore: 0,
                 githubUser: item.github_user_data,
                 // @ts-ignore
-                savedBy: item.profiles?.email,
+                savedBy: item.profiles ? {
+                    email: item.profiles.email,
+                    avatar_url: item.profiles.avatar_url,
+                    full_name: item.profiles.full_name
+                } : undefined,
                 status: item.status || 'new',
                 source: item.source || 'npm',
                 // Map joined labels

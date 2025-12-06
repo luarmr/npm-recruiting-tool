@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { CandidateResult, Status, Label } from '../types';
-import { ExternalLink, Github, Trophy, TrendingUp, ShieldCheck, Code2, Heart, Users } from 'lucide-react';
+import { ExternalLink, Github, Trophy, TrendingUp, ShieldCheck, Code2, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useDeveloperProfile } from '../hooks/useDeveloperProfile';
 import { supabase } from '../lib/supabase';
@@ -317,13 +317,15 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
                                     onRemove={onLabelUpdate ? () => handleUnassignLabel(label) : undefined}
                                 />
                             ))}
-                            <LabelPicker
-                                currentLabels={candidate.labels || []}
-                                onAssign={handleAssignLabel}
-                                onUnassign={handleUnassignLabel}
-                                teamId={teamId}
-                                align="left"
-                            />
+                            <div className="relative z-20" onClick={(e) => e.stopPropagation()}>
+                                <LabelPicker
+                                    currentLabels={candidate.labels || []}
+                                    onAssign={handleAssignLabel}
+                                    onUnassign={handleUnassignLabel}
+                                    teamId={teamId}
+                                    align="left"
+                                />
+                            </div>
                         </div>
                     </div>
                 )}
@@ -359,11 +361,31 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
                     </div>
                 )}
 
-                {/* Saved By Badge */}
-                {candidate.savedBy && (
-                    <div className="mb-4 flex items-center gap-2 text-xs text-slate-500 bg-slate-800/30 p-2 rounded-lg border border-slate-800/50">
-                        <Users className="w-3 h-3" />
-                        <span>Saved by <span className="text-slate-300">{candidate.savedBy}</span></span>
+                {/* Saved By Usage */}
+                {isSaved && (
+                    <div className="flex items-center gap-4 text-xs text-slate-500 mt-auto pt-4 border-t border-slate-800">
+                        <div className="flex items-center gap-2">
+                            {typeof candidate.savedBy === 'object' && candidate.savedBy?.avatar_url ? (
+                                <img
+                                    src={candidate.savedBy.avatar_url}
+                                    alt={candidate.savedBy.full_name || candidate.savedBy.email}
+                                    className="w-5 h-5 rounded-full border border-slate-700"
+                                    title={`Saved by ${candidate.savedBy.full_name || candidate.savedBy.email}`}
+                                />
+                            ) : (
+                                <div
+                                    className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-[10px] border border-indigo-500/30"
+                                    title={`Saved by ${typeof candidate.savedBy === 'string' ? candidate.savedBy : candidate.savedBy?.email}`}
+                                >
+                                    {(typeof candidate.savedBy === 'string' ? candidate.savedBy : candidate.savedBy?.email)?.charAt(0).toUpperCase() || '?'}
+                                </div>
+                            )}
+                            <span className="truncate max-w-[120px]">
+                                {typeof candidate.savedBy === 'object'
+                                    ? (candidate.savedBy.full_name || candidate.savedBy.email)
+                                    : candidate.savedBy}
+                            </span>
+                        </div>
                     </div>
                 )}
 

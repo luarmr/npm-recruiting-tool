@@ -14,6 +14,8 @@ interface Note {
     user_id: string;
     profiles?: {
         email: string;
+        avatar_url?: string;
+        full_name?: string;
     };
 }
 
@@ -39,6 +41,8 @@ interface CandidateData {
     team_id: string | null;
     profiles?: {
         email: string;
+        avatar_url?: string;
+        full_name?: string;
     };
     labels?: Label[];
     linkedinUrl?: string;
@@ -104,7 +108,7 @@ export function CandidateDetail() {
                 .from('saved_candidates')
                 .select(`
                     *,
-                    profiles(email),
+                    profiles(email, avatar_url, full_name),
                     saved_candidate_labels (
                         label: labels (*)
                     )
@@ -139,7 +143,7 @@ export function CandidateDetail() {
     const fetchNotes = async () => {
         const { data } = await supabase
             .from('candidate_notes')
-            .select('*, profiles(email)')
+            .select('*, profiles(email, avatar_url, full_name)')
             .eq('saved_candidate_id', id)
             .order('created_at', { ascending: true });
 
@@ -455,8 +459,21 @@ export function CandidateDetail() {
                             </div>
                         </div>
 
-                        <div className="pt-4 border-t border-slate-800 text-xs text-slate-500 flex justify-between">
-                            <span>Saved by {candidate.profiles?.email}</span>
+                        <div className="pt-4 border-t border-slate-800 text-xs text-slate-500 flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                {candidate.profiles?.avatar_url ? (
+                                    <img
+                                        src={candidate.profiles.avatar_url}
+                                        alt={candidate.profiles.full_name || candidate.profiles.email}
+                                        className="w-5 h-5 rounded-full border border-slate-700"
+                                    />
+                                ) : (
+                                    <div className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                                        {(candidate.profiles?.full_name || candidate.profiles?.email || 'Unknown').charAt(0).toUpperCase()}
+                                    </div>
+                                )}
+                                <span>Saved by {candidate.profiles?.full_name || candidate.profiles?.email}</span>
+                            </div>
                             <span>{new Date(candidate.date).toLocaleDateString()}</span>
                         </div>
                     </div>
@@ -476,10 +493,25 @@ export function CandidateDetail() {
                                 notes.map(note => (
                                     <div key={note.id} className="bg-slate-800/50 rounded-xl p-3 border border-slate-800">
                                         <div className="flex justify-between items-start mb-1">
-                                            <span className="text-xs font-bold text-indigo-400">{note.profiles?.email}</span>
+                                            <div className="flex items-center gap-2">
+                                                {note.profiles?.avatar_url ? (
+                                                    <img
+                                                        src={note.profiles.avatar_url}
+                                                        alt={note.profiles.full_name || note.profiles.email}
+                                                        className="w-4 h-4 rounded-full border border-slate-700"
+                                                    />
+                                                ) : (
+                                                    <div className="w-4 h-4 rounded-full bg-slate-700 flex items-center justify-center text-[8px] font-bold text-slate-400">
+                                                        {(note.profiles?.full_name || note.profiles?.email || 'U').charAt(0).toUpperCase()}
+                                                    </div>
+                                                )}
+                                                <span className="text-xs font-bold text-indigo-400">
+                                                    {note.profiles?.full_name || note.profiles?.email}
+                                                </span>
+                                            </div>
                                             <span className="text-[10px] text-slate-600">{new Date(note.created_at).toLocaleDateString()}</span>
                                         </div>
-                                        <p className="text-slate-300 text-sm whitespace-pre-wrap">{note.content}</p>
+                                        <p className="text-slate-300 text-sm whitespace-pre-wrap ml-6">{note.content}</p>
                                     </div>
                                 ))
                             )}
