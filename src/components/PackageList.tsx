@@ -71,38 +71,13 @@ export function PackageList({
         onSave?.(candidate);
     }
 
-    const internalOnRemove = (candidate: CandidateResult) => { // Expect candidate object now
-        // For remove, we might get an ID if it's saved, or just the candidate object
-        // The new DeveloperCard calls onRemove(id) or onRemove(candidate) depending...
-        // Actually DeveloperCard calls onRemove(id) if ID exists.
-        // But DeveloperRow calls onRemove(candidate).
-        // I should standardize.
-        // Let's stick to what DeveloperRow/Card expects.
-        // DeveloperCard expects onRemove?: (id: number) => void;
-        // DeveloperRow expects onRemove?: (candidate: CandidateResult) => void;
-        // This is inconsistent. I should fix the components first or adapt here.
-
-        // Looking at my previous write_to_file for DeveloperCard:
-        // onRemove?: (id: number) => void;
-        // And DeveloperRow:
-        // onRemove?: (candidate: CandidateResult) => void;
-
-        // I will adapt here.
+    const internalOnRemove = (candidate: CandidateResult) => {
         setSavedPackageNames(prev => {
             const next = new Set(prev);
             next.delete(candidate.package.name);
             return next;
         });
         onRemove?.(candidate);
-    }
-
-    // Adapt for DeveloperCard which sends ID
-    const handleCardRemove = (id: number) => {
-        // Find candidate by ID to remove from local Set
-        const candidate = results.find(r => r.id === id);
-        if (candidate) {
-            internalOnRemove(candidate);
-        }
     }
 
     if (results.length === 0) {
@@ -134,7 +109,7 @@ export function PackageList({
                                 index={index}
                                 isSaved={savedPackageNames.has(result.package.name)}
                                 onSave={internalOnSave}
-                                onRemove={handleCardRemove}
+                                onRemove={internalOnRemove}
                                 teamId={teamId}
                                 onStatusChange={onStatusChange}
                                 onLabelUpdate={onLabelUpdate}

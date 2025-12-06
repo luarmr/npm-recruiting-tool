@@ -14,7 +14,7 @@ interface DeveloperCardProps {
     index: number;
     isSaved?: boolean;
     onSave?: (candidate: CandidateResult) => void;
-    onRemove?: (id: number) => void;
+    onRemove?: (candidate: CandidateResult) => void;
     teamId?: string | null;
     onStatusChange?: (id: number, status: Status) => void;
     onNotesClick?: (candidateId: number) => void;
@@ -85,49 +85,44 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
         setIsSaving(true);
         try {
             if (isSaved) {
-                if (onRemove && candidate.id) {
-                    await onRemove(candidate.id);
+                // DELETE
+                if (teamId) {
+                    await supabase.from('saved_candidates').delete().eq('package_name', pkg.name).eq('team_id', teamId);
                 } else {
-                    // Fallback if no specific remove handler but we're in a "toggle" context (Search Page)
-                    // If we are on Search Page, isSaved refers to whether it is in DB.
-                    // But strictly speaking, onSearchPage, we might not have candidate.id if it's not saved yet...
-                    // Wait, if isSaved is true, candidate.id might be missing if it came from Search Results?
-                    // Actually, if it is saved, we should have an ID if we fetched it properly.
-                    // Let's stick to the prop callbacks.
-                    if (teamId) {
-                        await supabase.from('saved_candidates').delete().eq('package_name', pkg.name).eq('team_id', teamId);
-                    } else {
-                        await supabase.from('saved_candidates').delete().eq('package_name', pkg.name).eq('user_id', user.id);
-                    }
-                    // We need to notify parent to update state
-                    // onSave(candidate) is usually "add", maybe onRemove is just for "remove"
+                    await supabase.from('saved_candidates').delete().eq('package_name', pkg.name).eq('user_id', user.id);
+                }
+
+                if (onRemove) {
+                    await onRemove(candidate);
                 }
             } else {
+                // INSERT
+                const { error } = await supabase
+                    .from('saved_candidates')
+                    .insert({
+                        user_id: user.id,
+                        team_id: teamId || null,
+                        package_name: pkg.name,
+                        package_version: pkg.version,
+                        description: pkg.description,
+                        keywords: pkg.keywords,
+                        date: pkg.date,
+                        npm_link: pkg.links.npm,
+                        repository_link: pkg.links.repository,
+                        homepage_link: pkg.links.homepage,
+                        publisher_username: pkg.publisher?.username,
+                        publisher_email: pkg.publisher?.email,
+                        score_final: score.final,
+                        score_quality: score.detail.quality,
+                        score_popularity: score.detail.popularity,
+                        score_maintenance: score.detail.maintenance,
+                        github_user_data: candidate.githubUser
+                    });
+
+                if (error) throw error;
+
                 if (onSave) {
                     await onSave(candidate);
-                } else {
-                    // Fallback insert
-                    await supabase
-                        .from('saved_candidates')
-                        .insert({
-                            user_id: user.id,
-                            team_id: teamId,
-                            package_name: pkg.name,
-                            package_version: pkg.version,
-                            description: pkg.description,
-                            keywords: pkg.keywords,
-                            date: pkg.date,
-                            npm_link: pkg.links.npm,
-                            repository_link: pkg.links.repository,
-                            homepage_link: pkg.links.homepage,
-                            publisher_username: pkg.publisher?.username,
-                            publisher_email: pkg.publisher?.email,
-                            score_final: score.final,
-                            score_quality: score.detail.quality,
-                            score_popularity: score.detail.popularity,
-                            score_maintenance: score.detail.maintenance,
-                            github_user_data: candidate.githubUser
-                        });
                 }
             }
         } catch (error) {
