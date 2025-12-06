@@ -71,23 +71,22 @@ export function DeveloperRow({ candidate, index, isSaved = false, onSave, onRemo
         setIsSaving(true);
         try {
             if (isSaved) {
-                if (teamId) {
-                    // If in team view, we might need a specific check, but simplified for now:
-                    await supabase
-                        .from('saved_candidates')
-                        .delete()
-                        .eq('package_name', pkg.name)
-                        .eq('team_id', teamId);
-                } else {
-                    await supabase
-                        .from('saved_candidates')
-                        .delete()
-                        .eq('package_name', pkg.name)
-                        .eq('user_id', user.id);
+                // DELETE
+                // Reliant on RLS for permission.
+                const { error } = await supabase
+                    .from('saved_candidates')
+                    .delete()
+                    .eq('package_name', pkg.name);
+
+                if (error) {
+                    console.error('Delete error:', error);
+                    return;
                 }
-                onRemove?.(candidate);
+
+                if (onRemove) await onRemove(candidate);
             } else {
-                await supabase
+                // INSERT
+                const { error } = await supabase
                     .from('saved_candidates')
                     .insert({
                         user_id: user.id,
@@ -108,7 +107,10 @@ export function DeveloperRow({ candidate, index, isSaved = false, onSave, onRemo
                         score_maintenance: score.detail.maintenance,
                         github_user_data: candidate.githubUser
                     });
-                onSave?.(candidate);
+
+                if (error) throw error;
+
+                if (onSave) await onSave(candidate);
             }
         } catch (error) {
             console.error('Error toggling save:', error);

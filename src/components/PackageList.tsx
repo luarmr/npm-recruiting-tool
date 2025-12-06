@@ -77,6 +77,7 @@ export function PackageList({
             next.delete(candidate.package.name);
             return next;
         });
+        // Important: Propagate to parent (e.g. SavedCandidates) so it can remove from the list
         onRemove?.(candidate);
     }
 

@@ -86,10 +86,18 @@ export function DeveloperCard({ candidate, index, isSaved = false, onSave, onRem
         try {
             if (isSaved) {
                 // DELETE
-                if (teamId) {
-                    await supabase.from('saved_candidates').delete().eq('package_name', pkg.name).eq('team_id', teamId);
-                } else {
-                    await supabase.from('saved_candidates').delete().eq('package_name', pkg.name).eq('user_id', user.id);
+                // We delete by package_name. RLS policies ensure we only delete records
+                // we have permission for (own personal save OR team save).
+                // This covers the case where a user might have a personal save but is now in a team view,
+                // ensuring the "Unsave" action works robustly.
+                const { error } = await supabase
+                    .from('saved_candidates')
+                    .delete()
+                    .eq('package_name', pkg.name);
+
+                if (error) {
+                    console.error('Error removing candidate:', error);
+                    return; // Don't update UI if DB failed
                 }
 
                 if (onRemove) {
