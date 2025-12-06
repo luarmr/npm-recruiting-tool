@@ -8,7 +8,7 @@ import { useDeveloperProfile } from '../hooks/useDeveloperProfile';
 import type { ColumnId } from '../hooks/useColumnPreferences';
 import { LabelBadge } from './LabelBadge';
 import { LabelPicker } from './LabelPicker';
-import { useUser } from '../hooks/useUser';
+// import { useUser } from '../hooks/useUser';
 import { useLabels } from '../hooks/useLabels';
 
 interface DeveloperRowProps {
@@ -28,7 +28,7 @@ export function DeveloperRow({ candidate, index, isSaved = false, onSave, onRemo
     const { package: pkg, score } = candidate;
     const [isSaving, setIsSaving] = useState(false);
     const navigate = useNavigate();
-    const { user } = useUser();
+    // const { user } = useUser(); // Unused now that we fetch in toggleSave
     const { assignLabel, removeLabel } = useLabels(null);
 
     const handleAssignLabel = async (label: Label) => {
@@ -63,6 +63,7 @@ export function DeveloperRow({ candidate, index, isSaved = false, onSave, onRemo
         e.preventDefault();
         e.stopPropagation();
 
+        const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
             alert('Please sign in to save candidates');
             return;
